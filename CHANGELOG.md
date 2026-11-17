@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.7 · 2026-11-17
+
+- BuyWheelS: the two prices belong together now. Top row: Max Buy Price (left) and Bait sell price with the Bait button and its timer (right). The row below holds "Spend up to" and Repeat bait; GO / STOP follow.
+
 ## 0.7.6 · 2026-11-17
 
 - BuyWheelS: the "Repeat bait" label now sits next to its checkbox (it floated above the Spend Up To boxes).
