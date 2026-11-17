@@ -1683,7 +1683,7 @@ function BW:AutoBaitPick()
     -- watch list is used and own listings are not known.
     local keys = self.running and self.runWatchKeys or self:WatchKeys()
     local ab = self.ab or { owner = {}, justPosted = {} }
-    if not keys or #keys == 0 then return end
+    if not keys or #keys == 0 then return nil, "the watch list is empty" end
     local order = {}
     for i = 1, #keys do order[i] = i end
     for i = #order, 2, -1 do
@@ -1693,8 +1693,7 @@ function BW:AutoBaitPick()
     local percent, now = self:AutoBaitPercent(), GetTime()
     local wholeSilver = AH.SupportsCopperValues and not AH.SupportsCopperValues()
     -- One cheap pass over the bags: only items that are actually in the bags are
-    -- worth the (expensive) sellable check. Without this the pick gave up after a
-    -- few material-less items of a long watch list, although other items had stock.
+    -- worth the (expensive) sellable check.
     local inBags = {}
     for bag = 0, lastBag + 1 do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
@@ -1702,36 +1701,51 @@ function BW:AutoBaitPick()
             if bagInfo and bagInfo.itemID and not bagInfo.isLocked then inBags[bagInfo.itemID] = true end
         end
     end
+    -- Why items were passed over, summed per pick (db.autoBaitDiag, "skip_*") and
+    -- counted for this pick so the notice can say what stopped it.
+    local diag = self.db.autoBaitDiag
+    local why = {}
+    local function skip(reason)
+        why[reason] = (why[reason] or 0) + 1
+        if diag then diag["skip_" .. reason] = (diag["skip_" .. reason] or 0) + 1 end
+    end
     for _, index in ipairs(order) do
         local key = keys[index]
         local id = self:WatchID(key)
         local entry = self.db.watchItems[id]
         local normal = Addon:LearnedNormalPrice(self, id)
-        -- Why items were passed over, summed per pick (db.autoBaitDiag, "skip_*").
-        local diag = self.db.autoBaitDiag
-        local function skip(reason) if diag then diag[reason] = (diag[reason] or 0) + 1 end end
-        if entry and entry.enabled and normal then
-            if not inBags[key.itemID] then
-                skip("skip_no_material")
+        if not (entry and entry.enabled) then
+            skip("disabled")
+        elseif not normal then
+            skip("no_price")
+        elseif not inBags[key.itemID] then
+            skip("no_material")
+        else
+            local info = AH.GetItemKeyInfo(key)
+            if not (info and info.itemName) then
+                skip("no_item_info")
+            elseif not info.isCommodity then
+                skip("not_commodity")
+            elseif ab.owner[id] then
+                skip("own_listing")
+            elseif ab.justPosted[id] and now - ab.justPosted[id] < 20 then
+                skip("just_posted")
             else
-                local info = AH.GetItemKeyInfo(key)
-                if info and info.itemName and info.isCommodity then
-                    if ab.owner[id] then
-                        skip("skip_own_listing")
-                    elseif not (ab.justPosted[id] and now - ab.justPosted[id] < 20) then
-                        local target = { key = key, id = id, name = info.itemName, commodity = true,
-                            browseName = info.itemName, stackSize = 1 }
-                        if findSellableItem(target) then
-                            local price = math.floor(normal * percent / 100)
-                            if wholeSilver then price = math.max(100, math.floor(price / 100) * 100) end
-                            return { target = target, price = math.max(1, price) }
-                        end
-                        skip("skip_unsellable")
-                    end
+                local target = { key = key, id = id, name = info.itemName, commodity = true,
+                    browseName = info.itemName, stackSize = 1 }
+                if findSellableItem(target) then
+                    local price = math.floor(normal * percent / 100)
+                    if wholeSilver then price = math.max(100, math.floor(price / 100) * 100) end
+                    return { target = target, price = math.max(1, price) }
                 end
+                skip("unsellable")
             end
         end
     end
+    local parts = {}
+    for reason, n in pairs(why) do parts[#parts + 1] = n .. " " .. reason:gsub("_", " ") end
+    table.sort(parts)
+    return nil, #parts > 0 and table.concat(parts, ", ") or nil
 end
 
 -- Number of watched items whose bait price (percent of normal) is above their own
@@ -1770,9 +1784,10 @@ function BW:ManualBait()
         if self:PostReady() then self:PostOne() end
         return
     end
-    local pick = self:AutoBaitPick()
+    local pick, why = self:AutoBaitPick()
     if not pick then
-        Addon:Notify(self, "No watched item with bait material, a learned price and no own bait up.")
+        Addon:Notify(self, "No watched item with bait material, a learned price and no own bait up."
+            .. (why and (" (" .. why .. ")") or ""))
         return
     end
     self.autoBaitTarget, self.autoBaitPrice = pick.target, pick.price

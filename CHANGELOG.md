@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.14 · 2026-11-17
+
+- BWM: the "No watched item with bait material…" notice now says why, per watched item, e.g. `(30 no material, 12 no price, 2 own listing)`. Reasons: disabled, no price, no material, no item info, not commodity, own listing, just posted, unsellable. The same counts are summed in `db.autoBaitDiag` (`skip_*`). Meant to find out why a bait is not possible although the bags hold material.
+
 ## 0.9.13 · 2026-11-17
 
 - BWM: fixed "No watched item with bait material, a learned price and no own bait up" although the bags held material. The bait pick gave up after 8 watched items without material (in random order), so with a long watch list it often never reached the items that had stock. The bags are now scanned once and only items that are really in the bags are checked; the limit is gone. New diagnostic counter `skip_unsellable` (in the bags but not postable).
