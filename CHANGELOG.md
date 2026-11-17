@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.5 · 2026-11-17
+
+- The learned normal price is more conservative: of several depth measurements the lower quartile counts instead of the middle, and the normal price may lie at most 5% above the median of the lowest prices. Items with a thin top of the book (Linen Cloth, Solid Stone, ...) were valued up to 19% too high, which made their usual lowest price look like a bargain.
+
 ## 0.9.4 · 2026-11-17
 
 - **One-file installer and updater for Windows:** `UpdateBuyWheel.bat`. It finds the AddOns folder, downloads the newest version from GitHub and installs it, keeping the saved data. It refuses to touch a Git (development) copy. The README now starts with this.

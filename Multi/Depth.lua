@@ -19,6 +19,10 @@ local depthWindow = 90 * 60 -- seconds a depth sample counts
 local maxDepthSamples, maxRatios = 12, 8
 local ownQuiet = 30 -- seconds after an own buy or bait in which that item is not measured
 local ratioLow, ratioHigh = 0.7, 1.4
+-- The normal price is a conservative value: it never lies more than 5% above the
+-- median of the lowest prices (what you really pay), and of several depth
+-- measurements the lower quartile is used, not the middle.
+local normalCap = 1.05
 local maxRate = 6
 
 local function serverNow() return GetServerTime and GetServerTime() or time() end
@@ -31,6 +35,25 @@ local function median(values)
     if count == 0 then return end
     local middle = math.floor((count + 1) / 2)
     return count % 2 == 1 and list[middle] or (list[middle] + list[middle + 1]) / 2
+end
+
+-- Lower quartile (25th percentile, interpolated) of a list of numbers.
+function BW:LowerQuartile(values)
+    local list = {}
+    for i, value in ipairs(values) do list[i] = value end
+    table.sort(list)
+    local count = #list
+    if count == 0 then return end
+    local position = 1 + (count - 1) * 0.25
+    local low = math.floor(position)
+    local high = math.min(count, low + 1)
+    return list[low] + (list[high] - list[low]) * (position - low)
+end
+
+-- Limits a normal price to 5% above the median of the lowest prices, when that is known.
+function BW:CapNormal(normal, minMedian)
+    if normal and minMedian and minMedian > 0 then return math.min(normal, minMedian * normalCap) end
+    return normal
 end
 
 -- rows: { price, units } sorted by price, own units already removed.
@@ -104,7 +127,7 @@ end
 -- minMedian is the median of recent minimum prices, or nil when there are none.
 -- Returns the value and stores source/drift on the learned entry.
 function BW:NormalFromMeasurements(learned, minMedian)
-    local depth = median(freshDepths(learned))
+    local depth = self:LowerQuartile(freshDepths(learned))
     learned.depth = depth
     learned.drift = nil
     if depth then
@@ -115,7 +138,7 @@ function BW:NormalFromMeasurements(learned, minMedian)
             learned.drift = moved < depth * ratioLow or moved > depth * ratioHigh or nil
         end
         learned.source = "depth"
-        return normal
+        return self:CapNormal(normal, minMedian)
     end
     learned.source = "min"
     return minMedian

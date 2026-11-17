@@ -544,6 +544,12 @@ Depth samples come from:
   gets a detail query, one every 60/rate seconds. Never while a purchase, bait,
   post or offer is pending. One query costs about one scan cycle.
 
+The value is deliberately conservative: of several depth measurements the **lower
+quartile** counts (not the middle), and the normal price **never lies more than 5%
+above the median of the lowest prices**, so an item whose top of the book is thin
+(the cheap offers are few, the bulk comes later) is not valued far above what you
+really pay.
+
 Between depth samples the live minimum price moves the value: normal = median
 minimum price x ratio, where ratio = depth price / median minimum price measured
 together, limited to 0.7x-1.4x of the depth price. Depth samples count for 90

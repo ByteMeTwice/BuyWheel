@@ -43,22 +43,22 @@ test("The depth price skips thin bait levels and needs enough supply", function(
     eq(f.mode:DepthPriceFromListings(765), 36, "own units are removed from the rows")
 end)
 
-test("Normal price: depth anchors it, the live minimum moves it within bounds", function()
+test("Normal price: depth anchors it, the live minimum moves it, never more than 5% above the lowest prices", function()
     local f = fixture()
     local id = "765:5:0:0"
-    f.mode.minMedian = 40
+    f.mode.minMedian = 48
     f.mode:RecordDepth(id, 50)
     local learned = f.mode.db.learnedPrices[id]
-    eq(learned.normalPrice, 50)
+    eq(learned.normalPrice, 50, "50 is within 5% of the lowest prices (48 x 1.05 = 50.4)")
     eq(learned.source, "depth")
-    assert(math.abs(learned.ratio - 1.25) < 1e-9)
-    -- The market falls: minimum 32 x ratio 1.25 = 40 (within 0.7x-1.4x of the depth 50).
-    local normal = f.mode:NormalFromMeasurements(learned, 32)
-    assert(math.abs(normal - 40) < 1e-9)
+    assert(math.abs(learned.ratio - 50 / 48) < 1e-9)
+    -- The market falls: minimum 40 x ratio = 41.67, inside the cap of 42.
+    local normal = f.mode:NormalFromMeasurements(learned, 40)
+    assert(math.abs(normal - 40 * 50 / 48) < 1e-9, tostring(normal))
     eq(learned.drift, nil)
-    -- A big move is clamped to 0.7x of the depth price and flagged.
+    -- A big move is clamped to 0.7x of the depth price (35), then capped at 5% above the minimum (21); flagged.
     normal = f.mode:NormalFromMeasurements(learned, 20)
-    assert(math.abs(normal - 35) < 1e-9)
+    assert(math.abs(normal - 21) < 1e-9, tostring(normal))
     eq(learned.drift, true)
     local _, state = f.mode:NormalInfo(id)
     eq(state, "drift")
@@ -66,6 +66,28 @@ test("Normal price: depth anchors it, the live minimum moves it within bounds", 
     local plain = { }
     eq(f.mode:NormalFromMeasurements(plain, 33), 33)
     eq(plain.source, "min")
+end)
+
+test("The cap keeps the normal price at most 5% above the lowest prices", function()
+    local f = fixture()
+    eq(f.mode:CapNormal(100, 80), 84)
+    eq(f.mode:CapNormal(100, 100), 100)
+    eq(f.mode:CapNormal(100, nil), 100, "without a lowest price nothing is capped")
+    local id = "765:5:0:0"
+    f.mode:RecordDepth(id, 100)
+    local learned = f.mode.db.learnedPrices[id]
+    eq(f.mode:NormalFromMeasurements(learned, 80), 84, "depth 100 but the lowest prices are at 80")
+end)
+
+test("Of several depth measurements the lower quartile counts", function()
+    local f = fixture()
+    local id = "765:5:0:0"
+    for _, price in ipairs({ 80, 50, 70, 60 }) do f.mode:RecordDepth(id, price) end
+    local learned = f.mode.db.learnedPrices[id]
+    eq(learned.depth, 57.5, "sorted 50 60 70 80: the 25% point lies between 50 and 60")
+    eq(f.mode:LowerQuartile({ 7 }), 7)
+    eq(f.mode:LowerQuartile({ 10, 20 }), 12.5)
+    eq(f.mode:LowerQuartile({}), nil)
 end)
 
 test("Depth samples expire and the status shows the age", function()

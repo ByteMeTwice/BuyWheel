@@ -231,12 +231,10 @@ function BW:FinishLearning(cancelled)
             local learned = { samples = count, timestamp = report.timestamp, percent = session.percent,
                 source = "min" }
             if #depths >= 3 then
-                local sorted = {}
-                for i, price in ipairs(depths) do sorted[i] = price end
-                table.sort(sorted)
-                local mid = math.floor((#sorted + 1) / 2)
-                local depth = #sorted % 2 == 1 and sorted[mid] or (sorted[mid] + sorted[mid + 1]) / 2
-                result.normalPrice, result.depthSamples = depth, #depths
+                -- Lower quartile of the depth probes, and never more than 5% above the median
+                -- of the lowest prices.
+                local depth = self:LowerQuartile(depths)
+                result.normalPrice, result.depthSamples = self:CapNormal(depth, minNormal), #depths
                 learned.source, learned.depth, learned.depthAt = "depth", depth, report.timestamp
                 learned.depthList = {}
                 for _, price in ipairs(depths) do
