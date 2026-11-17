@@ -107,6 +107,29 @@ end
 
 -- Share of the work done (0-1): every item needs its depth probes (commodities)
 -- and enough minimum-price samples; items without item info count samples only.
+-- Deletes everything learned: normal prices, depth measurements, live buffers and
+-- the buy limits that came from them, so the next learning run is the only data.
+-- Watch checkboxes stay. Returns false while watching or learning.
+function BW:ResetLearned()
+    if self.running or self.learning or self.benchmark or self:PurchasePending() then
+        self.notice = "Stop watching or learning before resetting."
+        return false
+    end
+    local count = 0
+    for id, learned in pairs(self.db.learnedPrices or {}) do
+        count = count + 1
+        local entry = self.db.watchItems and self.db.watchItems[id]
+        if entry and learned.maxPrice then entry.maxPrice = 0 end
+    end
+    self.db.learnedPrices = {}
+    self.db.learningDiagnostics = nil
+    self.normalPriceSamples, self.freeDepthAt, self.ownActionAt = {}, {}, {}
+    self.depthNextAt = nil
+    if self.panel then self.panel.displayedTargetID = nil end
+    self.notice = ("Learned data reset (%d items). Run Start Learning Prices before watching."):format(count)
+    return true
+end
+
 function BW:LearningProgress(session)
     local total, sum = 0, 0
     for _, item in pairs(session.items) do

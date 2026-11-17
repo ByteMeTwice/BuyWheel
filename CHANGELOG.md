@@ -2,6 +2,13 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.3 · 2026-11-17
+
+- BuyWheelM: the Buy Bait option is removed completely (always off in this tab).
+- Auto-Bait row re-spaced so rate, price and units no longer overlap.
+- The learning button is now "Start Learning Prices" and larger.
+- New **Reset learned** button (bottom left, next to Help, with confirmation): deletes all learned normal prices, depth measurements and the limits derived from them, so a new learning run is the only data in use.
+
 ## 0.7.2 · 2026-11-17
 
 - BuyWheelM: the top of the right column is tidied. Readable gold labels, "Start learning" on the right edge, the options in two clean rows (Leave Bait · Buy Bait · Depth/min, then Auto-Bait with rate and price percent).

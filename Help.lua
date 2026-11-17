@@ -25,7 +25,7 @@ Enable Repeat bait below the Bait button and press GO. If no tracked bait is act
 |cffffd100Leave Bait|r
 Leaves one item at the lowest price. For indivisible stacks, it leaves the cheapest auction. It does not post a new bait item. Detailed listings are needed to determine the quantity to leave.
 
-|cffffd100Buy Bait · x1|r
+|cffffd100Buy Bait · x1 (BuyWheelS only)|r
 With Leave Bait off, requests a server quote for one commodity item directly from the Browse price. This can skip the detailed listing query. The server quote must pass the price and budget checks.
 
 |cffffd100Buy Bait quantity · experimental (BuyWheelS only)|r
@@ -34,7 +34,7 @@ Enter the quantity in the field beside the checkbox (default: 3, whole numbers f
     {
         title = "Learning, limits and statistics",
         text = [[|cffffd100Learn normal prices · BuyWheelM|r
-Set Max buy % (1–100), then press Start learning. All favorites are measured, including unchecked items; the button shows the progress in percent and the run ends by itself. No purchases are made. Keep the auction house and this tab open.
+Set Max buy % (1–100), then press Start Learning Prices. Reset learned (bottom left, next to Help) deletes everything learned if you want a clean start. All favorites are measured, including unchecked items; the button shows the progress in percent and the run ends by itself. No purchases are made. Keep the auction house and this tab open.
 
 |cffffd100Automatic limits|r
 The normal price comes from the market depth (the price where the first 10% of the supply is reached) and from the lowest listing prices. At the end, each limit becomes the selected percentage of its normal price. Example: 2 gold at 60% becomes 1 gold 20 silver. An item needs ten samples; otherwise its limit stays unchanged. In the favorites list the normal price is grey when fine, yellow when you should be careful and red when old.

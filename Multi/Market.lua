@@ -1917,10 +1917,9 @@ local handlers = {
         if name ~= addonName then return end
         BW.db = Addon:GetModeDB("multi")
         BW.db.earlyBuy = nil -- Retired experiment; keep historical diagnostics.
-        -- The fixed-quantity Buy Bait option was removed from this tab: a saved
-        -- setting becomes the one-item Buy Bait, and volume trading is always on.
-        if BW.db.fastQuoteX3 then BW.db.fastQuote = true end
-        BW.db.fastQuoteX3, BW.db.volumeTrading = false, nil
+        -- Both Buy Bait options were removed from this tab (always off), and
+        -- volume trading is always on.
+        BW.db.fastQuote, BW.db.fastQuoteX3, BW.db.volumeTrading = false, false, nil
         BW.db.maxPrice = BW.db.maxPrice or legacyMoney(BW.db.maxPriceText)
         BW.db.budget = BW.db.budget or legacyMoney(BW.db.budgetText)
         BW.db.maxPriceText, BW.db.budgetText = nil, nil

@@ -473,7 +473,7 @@ shows the average price paid the same way ("80% vom Normalpreis").
 
 The right column follows the order of use: learning (Max buy %, Limit live, Start
 learning), the shared budget in whole gold, the options (Leave
-Bait, Buy Bait, depth queries per minute; Volume Trading is always on), the selected item with its max buy price and
+Bait, depth queries per minute; Buy Bait is removed here and Volume Trading is always on), the selected item with its max buy price and
 learned normal price, then a compact statistics block, the status line and
 Start watching / STOP. The statistics lead with the larger Est. profit line
 (with gold/hour and the Compare button); items/min, spending, budget left and
@@ -579,3 +579,12 @@ tooltip of a favorite spells it out ("Tiefe · 3 min", "ungenau · 12 min",
   until the next bait is allowed (settle time plus the rate interval): "Bait
   2/min · next in 7 s". While the market is active the timer is paused ("market
   active · paused"); "ready" means the next mouse wheel step can post.
+
+## Reset learned (Multi)
+
+**Reset learned** (bottom left, next to Help) deletes all learned normal prices,
+depth measurements and live buffers, and sets the buy limits that came from them
+to zero, after a confirmation. Watch checkboxes stay. Items without a positive
+buy limit are not watched, so run **Start Learning Prices** before watching again;
+that run is then the only data in use. It is not possible while watching or
+learning.
