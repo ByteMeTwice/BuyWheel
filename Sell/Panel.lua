@@ -429,7 +429,8 @@ function SW:Attach()
         for stage, card in ipairs(stageCards) do
             local preset = SW.presets and SW.presets[stage]
             if not (preset and preview) then
-                card.price:SetText("–")
+                -- The price is shown even when no quantity can be sold right now.
+                card.price:SetText(preset and money(preset.price) or "–")
                 card.amount:SetText("")
                 card.total:SetText("")
             elseif merged and stage == 2 then

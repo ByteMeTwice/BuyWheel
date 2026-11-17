@@ -451,6 +451,35 @@ test("Keep Bait Items: the kept stock is never sold and the selection moves on",
     eq(sell:Sellable(f:item(2589)), 30, "0 switches the reservation off")
 end)
 
+test("Keep Bait Items does not block the second stage (the bag wait uses the real stock)", function()
+    local f = seller(50)
+    local sell = f.sell
+    sell:SetKeepCount(30)
+    eq(sell.quantity, 70)
+    sell:PostNext()
+    eq(f.calls[2].quantity, 35)
+    f:completePost()
+    f.ready = true
+    f:emit("AUCTION_HOUSE_THROTTLED_SYSTEM_READY")
+    f:advance(0.2)
+    sell:PostNext()
+    eq(sell.waitingForBags, nil, "the bags are up to date: 65 items left, 35 posted")
+    eq(f.calls[3] and f.calls[3].name, "PostCommodity", "the second stage is posted")
+    eq(f.calls[3].quantity, 35)
+    eq(f.calls[3].price, 204)
+end)
+
+test("The prices are shown even when everything is kept as bait", function()
+    local f = seller(50)
+    local sell = f.sell
+    sell:SetKeepCount(500)
+    local plan, message = sell:SalePreview()
+    eq(plan, nil)
+    assert(message:find("kept as bait"), message)
+    sell.panel:RefreshSellWheel()
+    assert(sell.panel.stageCards[1].price.text ~= "–", "the cheapest price is still shown")
+end)
+
 test("After a sale the next sellable item is selected automatically", function()
     local f = seller(100)
     f.sell:PostNext()

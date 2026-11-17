@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.3 · 2026-11-17
+
+- SellWheel fix: with "Keep Bait Items" above 0 the second stage of a sale was never posted (the wait for the updated bags compared against the wrong stock). Fixed.
+- SellWheel: the two prices are shown even when no quantity can be sold (for example when everything is kept as bait); the message then says so.
+
 ## 0.9.2 · 2026-11-17
 
 - Auto-Bait simplified: the fields "per min" and "budget" are gone. The only setting is **Material lasts [N] hours** (default 8): Auto-Bait spreads the bait material in your bags over that time and works out the rate itself. The bait speed during quiet windows is fixed.

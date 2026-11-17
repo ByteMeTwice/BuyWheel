@@ -181,6 +181,9 @@ end
 
 function SW:SalePreview()
     if not self.selected or not self.presets then return nil, "Select an item and load its market prices first." end
+    if self:KeepCount() > 0 and self:Sellable(self.selected) < 1 then
+        return nil, "Nothing to sell: all of this item is kept as bait (Keep Bait Items)."
+    end
     local quantity = tonumber(self.quantity)
     if not quantity or quantity ~= math.floor(quantity) or quantity < 1 then return nil, "Enter a whole quantity greater than zero." end
     if quantity > self:Sellable(self.selected) then
@@ -348,7 +351,10 @@ function SW:PostNext(card)
         end
         return
     end
-    local available = self.selected and self.selected.id == plan.item.id and self:Sellable(self.selected) or 0
+    local sameItem = self.selected and self.selected.id == plan.item.id
+    -- stock = what is really in the bags; available = what may be sold (minus the kept bait items).
+    local stock = sameItem and self.selected.available or 0
+    local available = sameItem and self:Sellable(self.selected) or 0
     local location, count = self:FindPostLocation(plan.item)
     if not location or available < 1 then
         if job then self:CancelPosting() end
@@ -391,7 +397,7 @@ function SW:PostNext(card)
         end
         job = { plan = plan, index = entryIndex, quantity = quantity, price = entry.price,
             loc = location.loc, bag = location.bag, slot = location.slot, guid = location.guid,
-            beforeAvailable = available, duration = duration }
+            beforeAvailable = stock, duration = duration }
         local db = self:Settings()
         db.postDiagnostics = db.postDiagnostics or {}
         job.log = { itemID = plan.item.key.itemID, item = plan.item.name, quantity = quantity,
