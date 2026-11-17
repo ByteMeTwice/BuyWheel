@@ -1410,4 +1410,29 @@ test("Bait prices carry the fingerprint in Single and Multi", function()
     end
 end)
 
+test("Return on Bait counts a bait as successful after purchases at the bait price or below", function()
+    local f = priorityFixture()
+    local mode = {}
+    local addon = f.addon
+    addon:RobOpen(mode, { targetID = 7, name = "Ore", price = 100 })
+    addon:RobOpen(mode, { targetID = 8, name = "Herb", price = 100 })
+    local posted, hit, open, units, rate = addon:RobSummary(mode)
+    eq(posted, 2); eq(hit, 0); eq(open, 2); eq(rate, nil, "open baits are not counted yet")
+    addon:RobPurchase(mode, { tradeKey = 7, quantity = 5, cost = 480 })
+    addon:RobPurchase(mode, { tradeKey = 7, quantity = 5, cost = 520 })
+    addon:RobPurchase(mode, { tradeKey = 7, quantity = 3, cost = 300 })
+    addon:RobPurchase(mode, { tradeKey = 9, quantity = 1, cost = 1 })
+    posted, hit, open, units, rate = addon:RobSummary(mode)
+    eq(hit, 1, "one bait, several purchases"); eq(units, 8, "the purchase above the price does not count"); eq(open, 1)
+    eq(rate, 1, "the open one is not counted")
+    addon:RobOpen(mode, { targetID = 8, name = "Herb", price = 100 })
+    posted, hit, open, units, rate = addon:RobSummary(mode)
+    eq(posted, 3); eq(open, 1); eq(rate, 0.5, "replaced bait without a purchase failed")
+    f.now = f.now + 700
+    posted, hit, open, units, rate = addon:RobSummary(mode)
+    eq(open, 0, "windows over"); assert(math.abs(rate - 1 / 3) < 1e-9)
+    addon:ResetPurchaseStats(mode)
+    eq(mode.rob, nil)
+end)
+
 print("PASS " .. count .. " integration scenarios; all addon files compile as Lua 5.1")

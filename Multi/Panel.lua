@@ -512,6 +512,33 @@ local function buildPanel(parent)
         GameTooltip:Show()
     end)
     baitLasts:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Return on Bait: baits that were followed by purchases at the bait price or below.
+    local robBox = CreateFrame("Frame", nil, panel)
+    robBox:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -104)
+    robBox:SetSize(150, 20)
+    robBox:EnableMouse(true)
+    local robText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    robText:SetPoint("RIGHT", robBox, "RIGHT", 0, -1)
+    robText:SetJustifyH("RIGHT")
+    robBox:SetScript("OnEnter", function(self)
+        local posted, hit, open, units, rate = Addon:RobSummary(BW)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:AddLine("Return on Bait (ROB)")
+        GameTooltip:AddLine("A bait counts as successful when you bought items of the same commodity at the bait price or below after it was posted (others matched or undercut it). Its window ends with the next bait of that item or after 10 minutes. Baits still in their window are not counted yet.", 1, 1, 1, true)
+        if posted > 0 then
+            GameTooltip:AddLine(("%d baits posted · %d successful · %d open"):format(posted, hit, open), 1, 1, 1)
+            if hit > 0 then GameTooltip:AddLine(("%d items bought after baits · avg %.1f per successful bait"):format(units, units / hit), 1, 1, 1) end
+            local list = {}
+            for _, item in pairs(BW.rob.items) do list[#list + 1] = item end
+            table.sort(list, function(a, b) return a.posted > b.posted end)
+            for i = 1, math.min(8, #list) do
+                local item = list[i]
+                GameTooltip:AddLine(("%s: %d of %d baits · %d items"):format(item.name or "?", item.hit, item.posted, item.units), 0.8, 0.8, 0.8)
+            end
+        end
+        GameTooltip:Show()
+    end)
+    robBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Bait price: first options row, right of Leave Bait.
     label(panel, "Bait price", "GameFontNormalSmall", x + 130, -76)
     local baitPercent = edit(panel, 40, x + 184, -70, 4)
@@ -747,6 +774,11 @@ local function buildPanel(parent)
         liveLimit:SetChecked(BW.db.liveLimit == true)
         liveLimit:SetEnabled(BW:CanChangeFastQuote())
         autoBait:SetChecked(BW.db.autoBait == true)
+        do
+            local posted, hit, open, _, rate = Addon:RobSummary(BW)
+            robText:SetText(posted == 0 and "ROB –" or rate
+                and ("ROB %d%% · %d/%d"):format(math.floor(rate * 100 + 0.5), hit, posted - open) or ("ROB · %d open"):format(open))
+        end
         if not baitLasts:HasFocus() then baitLasts:SetText(tostring(BW:BaitLastsHours())) end
         if not baitPercent:HasFocus() then baitPercent:SetText(tostring(BW:AutoBaitPercent())) end
         local baitCount, baitReason, baitRemaining, baitBudgetNow = BW:AutoBaitStatus()

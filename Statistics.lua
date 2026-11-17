@@ -48,6 +48,7 @@ end
 
 function Addon:ResetPurchaseStats(mode)
     mode.purchaseStats = nil
+    mode.rob = nil
     if mode.running then self:StartPurchaseStats(mode) end
 end
 
@@ -71,6 +72,7 @@ function Addon:RecordPurchaseStats(mode, order, success, missed)
         else item.missed = item.missed + order.quantity end
     end
     if success then
+        if mode == self.Multi and order.tradeKey then self:RobPurchase(mode, order) end
         row.units, row.buys = row.units + order.quantity, row.buys + 1
         row.cost = row.cost + order.cost
         local stats = mode.purchaseStats
@@ -104,8 +106,60 @@ function Addon:RecordPurchaseStats(mode, order, success, missed)
     end
 end
 
+-- Return on Bait (ROB): a bait counts as successful when, after it was posted, items of the
+-- same commodity were bought at the bait price or below (other sellers matched or undercut it).
+-- The window of a bait ends when it is replaced by the next bait of that item, or after 10 minutes.
+local ROB_WINDOW = 600
+
+function Addon:RobOpen(mode, bait)
+    local rob = mode.rob
+    if not rob then
+        rob = { current = {}, items = {}, posted = 0, hit = 0, units = 0 }
+        mode.rob = rob
+    end
+    local id = bait.targetID
+    if rob.current[id] then rob.current[id].closed = true end
+    local item = rob.items[id]
+    if not item then
+        item = { name = bait.name, posted = 0, hit = 0, units = 0 }
+        rob.items[id] = item
+    end
+    item.posted = item.posted + 1
+    rob.posted = rob.posted + 1
+    rob.current[id] = { price = bait.price or 0, at = GetTime(), units = 0, item = item }
+end
+
+-- A confirmed purchase: counts for the open bait of that item when paid at most the bait price.
+function Addon:RobPurchase(mode, order)
+    local rob = mode.rob
+    local entry = rob and rob.current[order.tradeKey]
+    if not entry or entry.closed or GetTime() - entry.at > ROB_WINDOW then return end
+    local quantity = order.quantity or 0
+    if quantity <= 0 or (order.cost or 0) / quantity > entry.price then return end
+    if entry.units == 0 then
+        rob.hit = rob.hit + 1
+        entry.item.hit = entry.item.hit + 1
+    end
+    entry.units = entry.units + quantity
+    entry.item.units = entry.item.units + quantity
+    rob.units = rob.units + quantity
+end
+
+-- posted, successful, still open (window running, no purchase yet), items bought, rate
+function Addon:RobSummary(mode)
+    local rob = mode.rob
+    if not rob or rob.posted == 0 then return 0, 0, 0, 0, nil end
+    local open, now = 0, GetTime()
+    for _, entry in pairs(rob.current) do
+        if entry.units == 0 and not entry.closed and now - entry.at <= ROB_WINDOW then open = open + 1 end
+    end
+    local decided = rob.posted - open
+    return rob.posted, rob.hit, open, rob.units, decided > 0 and rob.hit / decided or nil
+end
+
 function Addon:RecordBaitPost(postingMode, bait)
     if bait.profitRecord then return end
+    if postingMode == self.Multi then self:RobOpen(postingMode, bait) end
     -- Match purchased stock FIFO across both modes. The correction belongs to
     -- the mode that originally credited this unit's expected resale value.
     local owner, stats, stock, lot

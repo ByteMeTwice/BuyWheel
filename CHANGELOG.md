@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.9 · 2026-11-17
+
+- BWM: **ROB (Return on Bait)** in the Auto-Bait row, right edge: `ROB 62% · 18/29` = baits that were followed by purchases at the bait price or below (others matched or undercut it), out of all finished baits. A bait's window ends with the next bait of that item or after 10 minutes; baits still in their window are not counted yet. Tooltip: open baits, items bought, average per successful bait and the numbers per item. Reset with the purchase statistics reset.
+
 ## 0.9.8 · 2026-11-17
 
 - SellWheel: the mouse wheel sale is gone (checkbox "Wheel" and the wheel binding). Every stage is one click on **Sell**. The **Stop** button only shows while a sale plan runs or a result is unclear.

@@ -51,6 +51,7 @@ What each control does, tab by tab. The three tabs sit next to the native auctio
 - **Auto-Bait:** posts a bait of a random watched item from your bags, only while watching, only in a quiet market and only with a free wheel step. At most one own bait per item.
 - **Material lasts [N] hours:** spreads the bait material in your bags over N hours (default 8, 0 = no limit).
 - **Bait status (right edge):** baits in the last minute, the current budget per hour, and a countdown to the next bait ("market active · paused" while buying is possible).
+- **ROB (Return on Bait, right of the Auto-Bait row):** the share of finished baits that were followed by purchases at the bait price or below, e.g. `ROB 62% · 18/29`. The tooltip shows open baits, items bought and the numbers per item. Reset with the purchase statistics reset.
 - **Bait now:** posts one bait immediately (a random watched item), independent of the quiet-market rule.
 - **Last bait:** the latest posted bait is shown on the detail line.
 
