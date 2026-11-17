@@ -32,9 +32,9 @@ test("The depth price skips thin bait levels and needs enough supply", function(
     local f = fixture()
     -- 2 units at 34, 121 at 35: the first 20 units are reached at 35.
     eq(f.addon:DepthPriceFromRows({ { price = 34, units = 2 }, { price = 35, units = 121 } }), 35)
-    -- 10% of a big supply: 3000 units need 300 units, reached at 40.
+    -- 5% of a big supply: 3000 units need 150 units, reached at 38.
     eq(f.addon:DepthPriceFromRows({ { price = 35, units = 100 }, { price = 38, units = 100 },
-        { price = 40, units = 2800 } }), 40)
+        { price = 40, units = 2800 } }), 38)
     eq(f.addon:DepthPriceFromRows({ { price = 35, units = 10 }, { price = 36, units = 5 } }), nil, "too thin")
     -- Own units are not part of the supply.
     eq(f.mode:DepthPriceFromTiers({ { price = 35, quantity = 121, owned = 121 }, { price = 40, quantity = 50, owned = 0 } }), 40)
@@ -43,22 +43,22 @@ test("The depth price skips thin bait levels and needs enough supply", function(
     eq(f.mode:DepthPriceFromListings(765), 36, "own units are removed from the rows")
 end)
 
-test("Normal price: depth anchors it, the live minimum moves it, never more than 5% above the lowest prices", function()
+test("Normal price: depth anchors it, the live minimum moves it, never more than 3% above the lowest prices", function()
     local f = fixture()
     local id = "765:5:0:0"
     f.mode.minMedian = 48
-    f.mode:RecordDepth(id, 50)
+    f.mode:RecordDepth(id, 49)
     local learned = f.mode.db.learnedPrices[id]
-    eq(learned.normalPrice, 50, "50 is within 5% of the lowest prices (48 x 1.05 = 50.4)")
+    eq(learned.normalPrice, 49, "49 is within 3% of the lowest prices (48 x 1.03 = 49.44)")
     eq(learned.source, "depth")
-    assert(math.abs(learned.ratio - 50 / 48) < 1e-9)
-    -- The market falls: minimum 40 x ratio = 41.67, inside the cap of 42.
+    assert(math.abs(learned.ratio - 49 / 48) < 1e-9)
+    -- The market falls: minimum 40 x ratio = 40.83, inside the cap of 41.2.
     local normal = f.mode:NormalFromMeasurements(learned, 40)
-    assert(math.abs(normal - 40 * 50 / 48) < 1e-9, tostring(normal))
+    assert(math.abs(normal - 40 * 49 / 48) < 1e-9, tostring(normal))
     eq(learned.drift, nil)
-    -- A big move is clamped to 0.7x of the depth price (35), then capped at 5% above the minimum (21); flagged.
+    -- A big move is clamped to 0.7x of the depth price (34.3), then capped at 3% above the minimum (20.6); flagged.
     normal = f.mode:NormalFromMeasurements(learned, 20)
-    assert(math.abs(normal - 21) < 1e-9, tostring(normal))
+    assert(math.abs(normal - 20.6) < 1e-9, tostring(normal))
     eq(learned.drift, true)
     local _, state = f.mode:NormalInfo(id)
     eq(state, "drift")
@@ -68,15 +68,15 @@ test("Normal price: depth anchors it, the live minimum moves it, never more than
     eq(plain.source, "min")
 end)
 
-test("The cap keeps the normal price at most 5% above the lowest prices", function()
+test("The cap keeps the normal price at most 3% above the lowest prices", function()
     local f = fixture()
-    eq(f.mode:CapNormal(100, 80), 84)
+    assert(math.abs(f.mode:CapNormal(100, 80) - 82.4) < 1e-9)
     eq(f.mode:CapNormal(100, 100), 100)
     eq(f.mode:CapNormal(100, nil), 100, "without a lowest price nothing is capped")
     local id = "765:5:0:0"
     f.mode:RecordDepth(id, 100)
     local learned = f.mode.db.learnedPrices[id]
-    eq(f.mode:NormalFromMeasurements(learned, 80), 84, "depth 100 but the lowest prices are at 80")
+    assert(math.abs(f.mode:NormalFromMeasurements(learned, 80) - 82.4) < 1e-9, "depth 100 but the lowest prices are at 80")
 end)
 
 test("Of several depth measurements the lower quartile counts", function()

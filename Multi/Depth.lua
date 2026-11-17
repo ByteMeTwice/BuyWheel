@@ -6,7 +6,7 @@ local AH = C_AuctionHouse
 --
 -- The lowest listed price is a fragile measurement: a thin bait level pulls it
 -- down and our own purchases push it up. The depth price is the price at which
--- the first units of the supply are reached (10% of the loaded supply, at least
+-- the first units of the supply are reached (5% of the loaded supply, at least
 -- 20 units), excluding our own listings. A thin bait level cannot move it and our
 -- own purchases barely do. Depth samples come for free from listings the addon
 -- loads anyway (purchases, SellWheel) plus an optional low query rate.
@@ -14,15 +14,15 @@ local AH = C_AuctionHouse
 -- Between depth samples the live minimum price moves the value: normal =
 -- median minimum price x ratio, where ratio = depth price / median minimum price
 -- measured together. The result stays within 0.7x-1.4x of the depth price.
-local depthMinUnits, depthShare = 20, 0.10
+local depthMinUnits, depthShare = 20, 0.05
 local depthWindow = 90 * 60 -- seconds a depth sample counts
 local maxDepthSamples, maxRatios = 12, 8
 local ownQuiet = 30 -- seconds after an own buy or bait in which that item is not measured
 local ratioLow, ratioHigh = 0.7, 1.4
--- The normal price is a conservative value: it never lies more than 5% above the
+-- The normal price is a conservative value: it never lies more than 3% above the
 -- median of the lowest prices (what you really pay), and of several depth
 -- measurements the lower quartile is used, not the middle.
-local normalCap = 1.05
+local normalCap = 1.03
 
 local function serverNow() return GetServerTime and GetServerTime() or time() end
 
@@ -49,7 +49,7 @@ function BW:LowerQuartile(values)
     return list[low] + (list[high] - list[low]) * (position - low)
 end
 
--- Limits a normal price to 5% above the median of the lowest prices, when that is known.
+-- Limits a normal price to 3% above the median of the lowest prices, when that is known.
 function BW:CapNormal(normal, minMedian)
     if normal and minMedian and minMedian > 0 then return math.min(normal, minMedian * normalCap) end
     return normal

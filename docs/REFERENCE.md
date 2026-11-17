@@ -524,7 +524,7 @@ not change retroactively.
 
 The lowest listed price is fragile: a thin bait level pulls it down and your own
 purchases push it up. The learned normal price therefore rests on the **depth
-price**: the price at which the first 10% of the loaded supply (at least 20
+price**: the price at which the first 5% of the loaded supply (at least 20
 units) is reached, without your own listings. A thin bait level cannot move it
 and your own purchases barely do.
 
@@ -544,7 +544,7 @@ Depth samples come from:
   while a purchase, bait, post or offer is pending. One query costs about one scan cycle.
 
 The value is deliberately conservative: of several depth measurements the **lower
-quartile** counts (not the middle), and the normal price **never lies more than 5%
+quartile** counts (not the middle), and the normal price **never lies more than 3%
 above the median of the lowest prices**, so an item whose top of the book is thin
 (the cheap offers are few, the bulk comes later) is not valued far above what you
 really pay.

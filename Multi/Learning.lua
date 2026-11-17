@@ -231,7 +231,7 @@ function BW:FinishLearning(cancelled)
             local learned = { samples = count, timestamp = report.timestamp, percent = session.percent,
                 source = "min" }
             if #depths >= 3 then
-                -- Lower quartile of the depth probes, and never more than 5% above the median
+                -- Lower quartile of the depth probes, and never more than 3% above the median
                 -- of the lowest prices.
                 local depth = self:LowerQuartile(depths)
                 result.normalPrice, result.depthSamples = self:CapNormal(depth, minNormal), #depths
