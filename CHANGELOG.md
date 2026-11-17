@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.2 · 2026-11-17
+
+- BuyWheelM: the top of the right column is tidied. Readable gold labels, "Start learning" on the right edge, the options in two clean rows (Leave Bait · Buy Bait · Depth/min, then Auto-Bait with rate and price percent).
+
 ## 0.7.1 · 2026-11-17
 
 **BuyWheelM cleanup**
