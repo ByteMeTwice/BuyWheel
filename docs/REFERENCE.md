@@ -214,35 +214,23 @@ Budget accounting and Confirmed spending remain specific to each watching run.
 Starting a run resets that budget accounting; resetting Purchases does not
 restore any of the current run's budget.
 
-## Purchase rates and option comparisons
+## Purchase rates
 
-In both modes, rates, estimated profit and the open Compare table refresh every
-five seconds. Purchases are still recorded immediately. Reset, GO/STOP, option
-changes and compact layout changes refresh the display immediately.
+In both modes, rates and estimated profit refresh every five seconds (the profit
+amount itself is live). Purchases are still recorded immediately. Reset, GO/STOP,
+option changes and compact layout changes refresh the display immediately.
 
 The right column shows confirmed items/minute and items/hour for the current
-setting, alongside its accumulated active watching time. **Compare** opens a
-scrollable table of settings measured in this tab: time, items/minute,
-items/hour and item success percentage. A second line for each setting shows
-exact bought, missed and total item counts so the percentage has a visible
-sample size. These are item quantities, not purchase-attempt counts. Row tooltips include confirmed purchase
-counts, purchases/minute, average items/purchase, missed items and gold spent.
-The currently measured setting is green. On short multi-mode windows the compact
-rate display replaces the existing Bought/Missed line to avoid covering controls;
-its success statistics remain available in Compare.
-
-Each setting accumulates GO-to-STOP time across runs. Waiting for stock, reading
-Help/Compare and manual bait posting count toward that time; STOP, learning and
-benchmarking do not. Compare pauses wheel buying while open. Fixed quantities
-are measured separately. Leave Bait uses its own group regardless of fast quote
-toggles, since that path uses detailed listings. Outcomes use the setting from
-when the purchase began, including confirmations after STOP. Unresolved attempts
-are excluded from item success rates. Measurements span items and price limits,
-so use comparable stock and limits and allow enough time for meaningful results.
+setting, alongside its accumulated active watching time. Each setting
+accumulates GO-to-STOP time across runs. Waiting for stock, reading Help and
+manual bait posting count toward that time; STOP, learning and benchmarking do
+not. Outcomes use the setting from when the purchase began, including
+confirmations after STOP. Unresolved attempts are excluded.
 
 Purchases **Reset** clears measurements for that tab and restarts its clock if
 watching. Measurements live only in memory and clear on UI reload or restart.
-They do not affect purchase limits or budget accounting.
+They do not affect purchase limits or budget accounting. (The former Compare
+table was removed.)
 
 ## Bait lifetime
 
@@ -476,7 +464,7 @@ learning), the shared budget in whole gold, the options (Leave
 Bait, depth queries per minute; Buy Bait is removed here and Volume Trading is always on), the selected item with its max buy price and
 learned normal price, then a compact statistics block, the status line and
 Start watching / STOP. The statistics lead with the larger Est. profit line
-(with gold/hour and the Compare button); items/min, spending, budget left and
+(with gold/hour); items/min, spending, budget left and
 Bought/Missed follow as small grey lines. A saved budget with silver or copper is
 shown as its whole-gold part and keeps that value until the field is edited.
 

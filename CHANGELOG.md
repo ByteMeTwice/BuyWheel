@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.4 · 2026-11-17
+
+- Removed the **Compare** button and its table of measured settings (both tabs). The rates, Est. profit and the other statistics stay.
+
 ## 0.7.3 · 2026-11-17
 
 - BuyWheelM: the Buy Bait option is removed completely (always off in this tab).

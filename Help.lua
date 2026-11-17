@@ -45,8 +45,8 @@ The favorites list shows normal prices; click an item to edit its separate buy l
 |cffffd100Changing settings and stopping|r
 STOP cancels learning without applying new limits. Buy Bait options and multi-mode limits require stopping first. Single-mode price and budget can be edited while watching. Leave Bait can be changed when no purchase is pending.
 
-|cffffd100Purchase rates and Compare|r
-The bottom-right rates show confirmed items per minute and hour for the current setting, using active GO time across runs. STOP pauses the clock. Waiting for offers, Help, Compare and manual bait posting count as active watching time. Compare lists measured settings with active time and item success rate. Each row also shows bought, missed and total item quantities so you can judge the sample size; hover a row for purchases/min, average batch size and totals. Opening Compare pauses wheel buying until Back. Leave Bait is grouped separately because it uses detailed listings regardless of Buy Bait toggles. Use the same items, price limits and market conditions when comparing. Short samples fluctuate. Purchases Reset clears all measurements for this tab; they are not saved across reloads.
+|cffffd100Purchase rates|r
+The bottom-right rates show confirmed items per minute and hour for the current setting, using active GO time across runs. STOP pauses the clock. Waiting for offers, Help and manual bait posting count as active watching time. Purchases Reset clears all measurements for this tab; they are not saved across reloads.
 
 |cffffd100Estimated profit · Single and Multi|r
 The rates area also shows estimated profit and gold/hour for confirmed purchases in the current mode since Purchases Reset, across all items and GO runs. Single reuses the normal prices learned in Multi; each mode keeps separate totals. Gold/hour uses the current mode's total active watching time across all settings; STOP pauses this clock. Each purchase contributes learned normal price times quantity minus its actual confirmed cost. Tracked bait adjusts this estimate: its expected resale value is removed when posting is confirmed, and a matching sale credits its configured sale price. Purchase cost is never charged twice. Pending or missing sale notices credit no proceeds. Bait is matched FIFO to purchases across both modes and corrects the original buying mode. Baits without any tracked purchase are excluded and counted as unpriced. The normal price is captured when the purchase starts; later learning does not rewrite earlier estimates. AH fees and deposits are not deducted. Items without a learned price are excluded and counted as unpriced. Negative estimates are retained. The estimate survives GO/STOP, clears with Purchases Reset and is not saved across reloads.
@@ -113,7 +113,7 @@ function Addon:AttachHelp(mode, panel)
         help:SetShown(not help:IsShown())
         toggle:SetText(help:IsShown() and "Back" or "Help")
         if mode.running or mode:PostWaiting() or mode:PostNeedsConfirmation() then
-            mode:BindWheel(not help:IsShown() and not (panel.statsPage and panel.statsPage:IsShown()))
+            mode:BindWheel(not help:IsShown())
         end
     end)
     scroll:EnableMouseWheel(true)

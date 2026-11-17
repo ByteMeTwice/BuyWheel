@@ -549,7 +549,6 @@ local function buildPanel(parent)
     end)
     panel:SetScript("OnHide", function()
         BW:Stop()
-        if panel.statsPage then panel.statsPage:Hide() end
     end)
     Addon:AttachPurchaseStats(BW, panel, detail, 332)
     Addon:AttachPurchaseFeedback(panel)

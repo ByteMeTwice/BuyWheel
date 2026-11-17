@@ -246,116 +246,6 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
     local heading = text(summary, "GameFontNormal", 0, 0, 276)
     local rates = text(summary, "GameFontHighlight", 0, -20, 354)
     local profit = hasProfit and text(summary, "GameFontHighlightSmall", 0, -40, 354)
-    local compare = CreateFrame("Button", nil, summary, "UIPanelButtonTemplate")
-    compare:SetPoint("TOPRIGHT", 0, 5)
-    compare:SetSize(72, 22)
-    compare:SetText("Compare")
-
-    local page = CreateFrame("Frame", nil, panel)
-    page:SetPoint("TOPLEFT", 303, 4)
-    page:SetPoint("BOTTOMRIGHT", -4, 4)
-    page:SetFrameLevel(panel:GetFrameLevel() + 20)
-    page:EnableMouse(true)
-    local background = page:CreateTexture(nil, "BACKGROUND")
-    background:SetAllPoints(page)
-    background:SetColorTexture(0.045, 0.04, 0.03, 1)
-    text(page, "GameFontNormalLarge", 8, -8, 270):SetText("Purchase rate comparison")
-    local close = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-    close:SetPoint("TOPRIGHT", -8, -4)
-    close:SetSize(54, 24)
-    close:SetText("Back")
-    close:SetScript("OnClick", function() page:Hide() end)
-    local intro = text(page, "GameFontHighlightSmall", 8, -39, 330)
-    intro:SetHeight(42)
-    intro:SetWordWrap(true)
-    intro:SetText("Active GO time; STOP pauses the clock. Each setting shows bought/missed item counts behind its hit rate.")
-    local rowHeight = 58
-    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 8, -103)
-    scroll:SetPoint("BOTTOMRIGHT", -28, 58)
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(320, 1)
-    scroll:SetScrollChild(content)
-    scroll:EnableMouseWheel(true)
-    scroll:SetScript("OnMouseWheel", function(self, delta)
-        self:SetVerticalScroll(math.max(0, math.min(self:GetVerticalScrollRange(), self:GetVerticalScroll() - delta * rowHeight)))
-    end)
-    local empty = text(content, "GameFontDisableSmall", 0, -8, 320)
-    empty:SetText("Press GO to begin measuring purchases.")
-    local columns = { 0, 120, 176, 224, 276 }
-    local widths = { 118, 54, 46, 50, 44 }
-    for i, title in ipairs({ "Setting", "Time", "/min", "/hour", "Hit %" }) do
-        text(page, "GameFontNormalSmall", 8 + columns[i], -85, widths[i]):SetText(title)
-    end
-    local note = text(page, "GameFontDisableSmall", 8, 0, 330)
-    note:ClearAllPoints()
-    note:SetPoint("BOTTOMLEFT", 8, 8)
-    note:SetHeight(42)
-    note:SetWordWrap(true)
-    note:SetText("Compare the same items, limits and market conditions. Short measurements fluctuate. Reset in Purchases clears this table. Reloading also clears it.")
-    local rows = {}
-    local function showTooltip(self)
-        local row = self.data
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine(row.title)
-        GameTooltip:AddLine(("%d items bought · %d successful purchases"):format(row.units, row.buys), 1, 1, 1)
-        GameTooltip:AddLine(("%d items missed · %.2f gold spent"):format(row.missed, row.cost / 10000), 1, 1, 1)
-        local seconds = Addon:PurchaseStatsSeconds(mode, self.key)
-        if seconds > 0 then
-            GameTooltip:AddLine(("%.1f purchases/min · %.1f items/purchase"):format(row.buys * 60 / seconds, row.buys > 0 and row.units / row.buys or 0), 1, 1, 1)
-        end
-        GameTooltip:AddLine("Hit % uses bought / (bought + missed) item quantities. Unresolved attempts are excluded.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end
-    function page:Refresh()
-        local stats = mode.purchaseStats
-        local keys = stats and stats.order or {}
-        empty:SetShown(#keys == 0)
-        for i, key in ipairs(keys) do
-            if not rows[i] then
-                local frame = CreateFrame("Frame", nil, content)
-                frame:SetPoint("TOPLEFT", 0, -(i - 1) * rowHeight)
-                frame:SetSize(320, rowHeight - 2)
-                frame:EnableMouse(true)
-                frame:SetScript("OnEnter", showTooltip)
-                frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
-                frame.labels = {}
-                for j = 1, 5 do
-                    frame.labels[j] = text(frame, "GameFontHighlightSmall", columns[j], -3, widths[j])
-                end
-                frame.labels[1]:SetWordWrap(true)
-                frame.labels[1]:SetHeight(32)
-                frame.labels[1]:SetJustifyV("TOP")
-                frame.items = text(frame, "GameFontDisableSmall", 0, -37, 320)
-                rows[i] = frame
-            end
-            local row, frame = stats.rows[key], rows[i]
-            local seconds = Addon:PurchaseStatsSeconds(mode, key)
-            local total = row.units + row.missed
-            frame.data, frame.key = row, key
-            frame.labels[1]:SetText((stats.active == key and "|cff80ff80" or "") .. row.title .. "|r")
-            frame.labels[2]:SetText(duration(seconds))
-            frame.labels[3]:SetText(seconds > 0 and ("%.1f"):format(row.units * 60 / seconds) or "–")
-            frame.labels[4]:SetText(seconds > 0 and ("%.0f"):format(row.units * 3600 / seconds) or "–")
-            frame.labels[5]:SetText(total > 0 and ("%.0f%%"):format(row.units * 100 / total) or "–")
-            frame.items:SetText(("Items: %d bought · %d missed · %d total"):format(row.units, row.missed, total))
-            frame:Show()
-        end
-        for i = #keys + 1, #rows do rows[i]:Hide() end
-        content:SetHeight(math.max(rowHeight, #keys * rowHeight))
-    end
-    page:SetScript("OnShow", function(self)
-        self:Refresh()
-        if mode.running or mode:PostWaiting() or mode:PostNeedsConfirmation() then mode:BindWheel(false) end
-    end)
-    page:SetScript("OnHide", function()
-        GameTooltip:Hide()
-        if (mode.running or mode:PostWaiting() or mode:PostNeedsConfirmation())
-            and not (panel.helpPage and panel.helpPage:IsShown()) then mode:BindWheel(true) end
-    end)
-    page:Hide()
-    panel.statsPage = page
-    compare:SetScript("OnClick", function() page:Show() end)
     summary:EnableMouse(true)
     summary:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -363,7 +253,7 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
         local key, title = Addon:PurchaseStatsKey(mode)
         GameTooltip:AddLine(title .. " · " .. duration(Addon:PurchaseStatsSeconds(mode, key)), 1, 1, 1)
         GameTooltip:AddLine("Confirmed items divided by active watching time for this setting, across all runs since Reset. Waiting for offers and manual bait posting count as active time.", 1, 1, 1, true)
-        GameTooltip:AddLine("STOP pauses measurement. Compare pauses mouse-wheel buying while open; its watching time still counts.", 1, 1, 1, true)
+        GameTooltip:AddLine("STOP pauses measurement.", 1, 1, 1, true)
         if hasProfit then
             local stats = mode.purchaseStats or {}
             GameTooltip:AddLine("Estimated profit · all " .. modeName .. " purchases since Reset")
@@ -452,6 +342,5 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
             profit:Show()
             profit:SetText(profitLine(stats, cachedHourlyText))
         end
-        if page:IsShown() then page:Refresh() end
     end
 end

@@ -1055,7 +1055,6 @@ function BW:Buy()
         priceTiming.firstClickAt = priceTiming.firstClickAt or clickedAt
     end
     local blocked = self.panel.helpPage and self.panel.helpPage:IsShown() and "help"
-        or self.panel.statsPage and self.panel.statsPage:IsShown() and "stats"
         or purchase and "purchase" or post and "post" or baitWait and "bait"
         or recoveryTimer and "recovery"
         or request and "request" or not isReady and "throttle"
@@ -1181,8 +1180,7 @@ function BW:ContinueBaitOnInput()
     -- Repeat bait off. Only the actual wheel input can continue the post.
     if not self.open or not Addon:CanUseMode(self) or InCombatLockdown() or not self.panel:IsVisible()
         or AuctionHouseFrame:GetAlpha() == 0 or self.benchmark or purchase or recoveryTimer
-        or (post and not post.confirm) or (self.panel.helpPage and self.panel.helpPage:IsShown())
-        or (self.panel.statsPage and self.panel.statsPage:IsShown()) then return true end
+        or (post and not post.confirm) or (self.panel.helpPage and self.panel.helpPage:IsShown()) then return true end
     if self:PostReady() then
         self:PostOne()
         scanSample("baitContinuedByWheel")
@@ -1228,8 +1226,7 @@ function BW:HandleRepeatBait()
     if self:HasLiveBait() then return false end
     if not Addon:CanUseMode(self) or InCombatLockdown() or not self.panel:IsVisible()
         or AuctionHouseFrame:GetAlpha() == 0 or self.benchmark or purchase or recoveryTimer
-        or (post and not post.confirm) or (self.panel.helpPage and self.panel.helpPage:IsShown())
-        or (self.panel.statsPage and self.panel.statsPage:IsShown()) then return true end
+        or (post and not post.confirm) or (self.panel.helpPage and self.panel.helpPage:IsShown()) then return true end
     self:PostOne()
     return true
 end

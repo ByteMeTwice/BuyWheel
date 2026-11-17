@@ -1172,7 +1172,6 @@ function BW:Buy()
     -- only when nothing is buyable (see AutoBaitWheel).
     if self:AutoBaitWheel() then return end
     local blocked = self.panel.helpPage and self.panel.helpPage:IsShown() and "help"
-        or self.panel.statsPage and self.panel.statsPage:IsShown() and "stats"
         or purchase and "purchase" or post and "post" or baitWait and "bait"
         or recoveryTimer and "recovery"
         or request and "request" or not isReady and "throttle"
@@ -1703,7 +1702,6 @@ function BW:AutoBaitWheel()
     local ab = self.ab
     if not self.db.autoBait or not ab or not self.running or not self.open then return false end
     if (self.panel.helpPage and self.panel.helpPage:IsShown())
-        or (self.panel.statsPage and self.panel.statsPage:IsShown())
         or InCombatLockdown() or not self.panel:IsVisible() or AuctionHouseFrame:GetAlpha() == 0
         or purchase then return false end
     if post then
