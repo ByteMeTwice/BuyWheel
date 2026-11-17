@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.15 · 2026-11-17
+
+- BWM: **Auto-Bait and Bait now no longer treat your normal sale listings as baits.** Every item you had any auction of (for example from SellWheel) counted as "own bait up" and was skipped, so with material in the bags the notice still said "No watched item with bait material" (`34 no material, 8 own listing`). An own listing now only counts as a bait when the lowest price of the item is at bait level (at or below the bait price, plus 20% slack for relearned prices).
+
 ## 0.9.14 · 2026-11-17
 
 - BWM: the "No watched item with bait material…" notice now says why, per watched item, e.g. `(30 no material, 12 no price, 2 own listing)`. Reasons: disabled, no price, no material, no item info, not commodity, own listing, just posted, unsellable. The same counts are summed in `db.autoBaitDiag` (`skip_*`). Meant to find out why a bait is not possible although the bags hold material.

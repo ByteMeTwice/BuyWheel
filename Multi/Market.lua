@@ -1661,10 +1661,21 @@ function BW:AutoBaitObserve(rows)
     local ab = self.ab
     if not ab then return end
     local owner, dip = {}, false
+    local percent = self:AutoBaitPercent()
     for _, row in ipairs(rows) do
         local id = self:WatchID(row.itemKey)
-        owner[id] = row.containsOwnerItem == true
         local normal = Addon:LearnedNormalPrice(self, id)
+        -- containsOwnerItem is true for any own listing, also a normal sale
+        -- listing (SellWheel). Only an own listing at bait level (lowest price at or
+        -- below the bait price, with some slack for relearned prices) counts as a
+        -- bait that is up; otherwise the item may still get a bait.
+        if row.containsOwnerItem ~= true then
+            owner[id] = false
+        elseif normal and (row.minPrice or 0) > 0 then
+            owner[id] = row.minPrice <= math.max(100, normal * percent / 100 * 1.2)
+        else
+            owner[id] = true
+        end
         local entry = self.db.watchItems[id]
         if normal and entry and entry.enabled and not row.containsOwnerItem
             and (row.minPrice or 0) > 0 and row.minPrice < normal * quietDipRatio then
