@@ -90,36 +90,39 @@ or entering combat applies no limits. There is no manual bait button in this tab
 
 ## SellWheel · price list and two-stage sale
 
-Select a commodity from the left bag list. SellWheel loads the complete market
-and shows it as a comparison list, like Auctioneer: every price level with its
-quantity and the cumulative share of the competing supply. Your own listings are
-shown in gold ("dein N") and never count as competition. Long markets are
-shortened to the cheapest levels plus the rows around your two prices.
+Select a commodity from the left bag list. The layout follows a classic selling
+tab: item icon and name on top, then quantity and duration, the two price cards,
+the **Verkaufen** button, and below it the offers of the market, cheapest first,
+with every price level, its quantity and the cumulative share of the competing
+supply. Your own listings are shown in gold ("dein N") and never count as
+competition. Long markets are shortened to the cheapest levels plus the rows
+around your two prices.
 
-Two prices are used, highlighted in the list:
+Two prices are used, as colored cards and highlighted at their rows in the list:
 
-- **Günstigstes** (green): one price step below the first *meaningful* level. A
-  level counts once it holds about 5% of the competing supply (at least 5
-  units), so a thin bait level at the very bottom is skipped.
+- **Günstigstes** (green): the price of the first *meaningful* level itself, not
+  undercut by a copper. A level counts once it holds about 5% of the competing
+  supply (at least 5 units), so a thin bait level at the very bottom is skipped.
 - **25 %-Stufe** (blue): just below the price level where about 25% of the
   competing supply is reached, never below the first meaningful level.
 
 A planned price that has no level of its own appears as an extra row in the list.
 
-**Aufteilung:** the field next to "Günstigstes" is the share (0-100%, default 50)
-of the quantity sold at the cheapest price; the rest goes to the 25 %-Stufe. The
-whole quantity is sold (default: half and half). Rounding keeps the total, and if
-both prices are the same the sale is one step. Two summary lines show the stages
-with quantity, price and total; the line under the list shows the gross value
-before AH fees. Suggestions do not guarantee sales or profit.
+**Aufteilung:** the box on the Günstigstes card is the share (0-100%, default 50)
+of the quantity sold at the cheapest price; the rest goes to the 25 %-Stufe (shown
+on its card). The whole quantity is sold. Rounding keeps the total, and if both
+prices are the same the sale is one step. The cards show quantity, price and
+total; the status line shows the gross value before AH fees. Suggestions do not
+guarantee sales or profit.
 
-**Verkaufen** posts one stage per click (WoW needs a real click for each post).
-The button shows the number of steps and, while a plan runs, "Weiter · Schritt
-2/2". **Mausrad** (checkbox, off by default): when enabled, every mouse wheel
-step does the next step instead (post or confirm), so a sale is a quick scroll
-twice. It only works while the SellWheel tab is open and out of combat; chat
-scrolling is paused meanwhile, as in the buy modes. A step never posts while a
-post is still running.
+**Verkaufen** posts the first stage with one click (WoW needs a real click for
+each post). The button shows the number of steps and, while a plan runs, "Weiter ·
+Schritt 2/2". **Rest per Mausrad** (checkbox, on by default): after the first
+click, every mouse wheel step posts the next stage (or confirms), so the rest is
+a quick scroll. The wheel only continues a running plan: without one it does
+nothing and is not taken over. It only works while the SellWheel tab is open and
+out of combat; chat scrolling is paused while a plan runs. A step never posts
+while a post is still running.
 
 Three checkboxes (2h, 8h, 24h) set the auction duration (default 2h; saved). The
 quantity box, the share and the duration can only be changed while no sale plan

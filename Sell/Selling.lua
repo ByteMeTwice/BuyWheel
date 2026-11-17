@@ -35,8 +35,8 @@ function SW:SetCheapShare(value)
     self:Settings().cheapShare = value
 end
 
--- Mouse wheel selling is opt-in: every wheel step posts the next open stage.
-function SW:WheelEnabled() return self:Settings().wheel == true end
+-- The wheel continues a running sale plan (on by default).
+function SW:WheelEnabled() return self:Settings().wheel ~= false end
 
 function SW:SetWheelEnabled(enabled) self:Settings().wheel = enabled == true end
 
@@ -92,9 +92,9 @@ function SW:UpdatePrices()
             if cumulative >= need then significant = tier.price break end
         end
     end
-    -- Günstigstes: one tick below the first meaningful level, in front of the bulk
-    -- of the offers (but not chasing a thin bait below it).
-    local cheapest = rounded(significant - tick)
+    -- Günstigstes: the price of the first meaningful level itself (no undercut),
+    -- so a thin bait below it is not chased.
+    local cheapest = rounded(significant)
     -- 25 %-Stufe: just below the level where 25 % of the competing supply is
     -- reached, never below the first meaningful level.
     local quarter = rounded(math.max(percentile(0.25) - tick, significant))
@@ -419,10 +419,13 @@ function SW:InstallPostHooks()
     end
 end
 
--- One mouse wheel step (hardware event) posts the next open stage or confirms the
--- pending post. Only active when the wheel option is on; the panel binds the wheel.
+-- One mouse wheel step (hardware event) continues a RUNNING plan: it posts the next
+-- open stage or confirms the pending post. It never starts a sale. On by default.
 function SW:WheelStep()
     if not self:WheelEnabled() then return end
-    if self.post and self.post.state ~= "confirm" then return end
-    self:PostNext()
+    if self.post then
+        if self.post.state == "confirm" then self:PostNext() end
+        return
+    end
+    if self.plan then self:PostNext() end
 end

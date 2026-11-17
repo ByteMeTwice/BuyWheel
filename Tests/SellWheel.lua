@@ -352,14 +352,15 @@ local function seller(share)
     f:open()
     f.sell:SetCheapShare(share or 100)
     f:read(2589, { { unitPrice = 100, quantity = 2 }, { unitPrice = 120, quantity = 8 },
-        { unitPrice = 200, quantity = 400 }, { unitPrice = 205, quantity = 1200 } })
+        { unitPrice = 200, quantity = 100 }, { unitPrice = 205, quantity = 300 },
+        { unitPrice = 210, quantity = 1200 } })
     return f
 end
 
 test("Two prices: cheapest skips thin levels, the 25 % level follows, recalculation sends no queries", function()
     local f = seller()
-    eq(f.sell.presets[1].price, 199, "Günstigstes sits below the first meaningful level")
-    eq(f.sell.presets[2].price, 200, "the 25 % level is reached inside the 200 tier")
+    eq(f.sell.presets[1].price, 200, "Günstigstes is the first meaningful level itself, no undercut")
+    eq(f.sell.presets[2].price, 204, "the 25 % level is reached in the 205 tier, one step below")
     eq(f.sell.presets[1].lowest, 100)
     eq(f.sell.presets[1].ahead, 10)
     assert(math.abs(f.sell.presets[1].aheadShare - 10 / 1610) < 1e-9)
@@ -377,7 +378,7 @@ test("A thin bait level is not the cheapest price", function()
     f:read(2589, { { unitPrice = 34, quantity = 2 }, { unitPrice = 35, quantity = 121 },
         { unitPrice = 37, quantity = 136 }, { unitPrice = 38, quantity = 40 },
         { unitPrice = 39, quantity = 127 }, { unitPrice = 40, quantity = 402 } })
-    eq(f.sell.presets[1].price, 34, "the 2-unit level at 34 is skipped: 35 is the first meaningful level")
+    eq(f.sell.presets[1].price, 35, "the 2-unit level at 34 is skipped: 35 is the first meaningful level")
     assert(f.sell.presets[2].price >= f.sell.presets[1].price)
 end)
 
@@ -387,8 +388,8 @@ test("The list marks the rows our two prices land on, including planned prices w
     for _, row in ipairs(f.sell.listing) do
         if row.stage then found[row.stage] = row end
     end
-    assert(found[1] and found[1].planned and found[1].price == 199, "199 has no level and becomes a planned row")
-    assert(found[2] and not found[2].planned and found[2].price == 200, "200 marks the existing level")
+    assert(found[1] and not found[1].planned and found[1].price == 200, "200 marks the existing level")
+    assert(found[2] and found[2].planned and found[2].price == 204, "204 has no level and becomes a planned row")
     for i = 2, #f.sell.listing do
         assert(f.sell.listing[i - 1].price <= f.sell.listing[i].price, "rows stay sorted by price")
     end
@@ -402,7 +403,7 @@ test("Sale previews split 50/50, round the cheap share and merge identical price
     eq(preview.counts[1], 50)
     eq(preview.counts[2], 50)
     eq(preview.quantity, 100)
-    eq(preview.total, 50 * 199 + 50 * 200)
+    eq(preview.total, 50 * 200 + 50 * 204)
     f.sell.quantity = 1
     preview = assert(f.sell:SalePreview())
     eq(preview.counts[1], 1)
@@ -445,7 +446,7 @@ test("One price (100 % or 0 % cheap) posts everything once and confirmations do 
     f.sell:PostNext()
     eq(f.calls[2].name, "PostCommodity")
     eq(f.calls[2].quantity, 100)
-    eq(f.calls[2].price, 200, "0 % cheap sells all at the 25 % price")
+    eq(f.calls[2].price, 204, "0 % cheap sells all at the 25 % price")
     eq(f.calls[2].duration, 1)
     for i = 1, 20 do f.sell:PostNext() end
     eq(#f.calls, 2)
@@ -460,7 +461,7 @@ end)
 
 test("The two stages post one per fresh click, with frozen prices and no timed continuation", function()
     local f = seller(50)
-    for i, expected in ipairs({ { 50, 199 }, { 50, 200 } }) do
+    for i, expected in ipairs({ { 50, 200 }, { 50, 204 } }) do
         f.ready = true
         f.sell:PostNext()
         eq(f.calls[#f.calls].quantity, expected[1])
@@ -491,7 +492,7 @@ test("AH confirmation requires another click and cancelling it releases the plan
     f.sell:PostNext()
     eq(f.calls[3].name, "ConfirmPostCommodity")
     eq(f.calls[3].quantity, 100)
-    eq(f.calls[3].price, 199)
+    eq(f.calls[3].price, 200)
     f:completePost()
     eq(f.sell.post, nil)
     f = seller()
@@ -562,38 +563,44 @@ test("The duration checkboxes choose the auction duration code", function()
     eq(f.sell:Duration(), 3, "no change while a post is running")
 end)
 
-test("The Verkaufen button runs the stages one click at a time; the wheel only works when enabled", function()
+test("The Verkaufen button starts the plan; the wheel only continues a running plan", function()
     local f = seller(50)
     local panel = f.sell.panel
     panel:RefreshSellWheel()
     assert(panel.sellButton.enabled, "ready to sell")
     eq(panel.sellButton.text, "Verkaufen (2 Schritte)")
+    eq(f.sell:WheelEnabled(), true, "the wheel option is on by default")
+    -- Without a plan the wheel does nothing: it never starts a sale.
+    f.sell:WheelStep()
+    eq(#f.calls, 1)
+    assert(not (f.bound and f.bound.MOUSEWHEELUP), "the wheel is not taken over without a plan")
     panel.sellButton.scripts.OnClick()
     eq(f.calls[2].quantity, 50)
-    eq(f.calls[2].price, 199)
+    eq(f.calls[2].price, 200)
     f:completePost()
     f.ready = true
     f:emit("AUCTION_HOUSE_THROTTLED_SYSTEM_READY")
     f:advance(0.2)
     panel:RefreshSellWheel()
     eq(panel.sellButton.text, "Weiter · Schritt 2/2")
-    -- Wheel steps do nothing while the option is off.
+    assert(f.bound and f.bound.MOUSEWHEELUP, "the wheel is bound while the plan runs")
+    -- Switched off, the wheel does nothing.
+    panel.wheelBox.checked = false
+    panel.wheelBox.scripts.OnClick(panel.wheelBox)
     f.sell:WheelStep()
     eq(#f.calls, 2)
     panel.wheelBox.checked = true
     panel.wheelBox.scripts.OnClick(panel.wheelBox)
     panel:RefreshSellWheel()
-    eq(f.sell:WheelEnabled(), true)
-    assert(f.bound and f.bound.MOUSEWHEELUP, "the wheel is bound while the option is on")
     f.sell:WheelStep()
     eq(f.calls[3].quantity, 50)
-    eq(f.calls[3].price, 200)
+    eq(f.calls[3].price, 204)
     f.sell:WheelStep()
     eq(#f.calls, 3, "a wheel step never posts while a post is still running")
     f:completePost()
     eq(f.sell.plan, nil)
-    f.sell:HidePanel()
-    assert(not (f.bound and f.bound.MOUSEWHEELUP), "hiding the tab releases the wheel")
+    panel:RefreshSellWheel()
+    assert(not (f.bound and f.bound.MOUSEWHEELUP), "the finished plan releases the wheel")
 end)
 
 test("Delayed bag updates prevent the next stage from posting stale stock", function()

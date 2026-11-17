@@ -2,6 +2,13 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.8.0 · 2026-11-17
+
+**SellWheel in the style of a selling tab**
+- New layout: item icon and name on top, quantity and duration, two colored price cards (green = cheapest, blue = 25% level) with the share box, a big **Verkaufen** button, and the list of the cheapest offers below. The two prices are highlighted in the list at the rows where each half is sold.
+- The cheapest price is no longer undercut by one copper: it is the price of the first meaningful level itself.
+- **Rest per Mausrad** (on by default): the first click on Verkaufen posts the first stage, then each scroll step posts the next one. Without a running plan the wheel does nothing and is not taken over.
+
 ## 0.7.9 · 2026-11-17
 
 - BuyWheelS: more compact and better grouped. Repeat bait sits on the title row of "Bait sell price". Leave Bait / Buy Bait are one row above GO / STOP, "Spend up to (total)" directly below the buttons, and the big gap is gone: status, spending and statistics moved up.

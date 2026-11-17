@@ -22,7 +22,7 @@
 - **Max buy %.** One percentage of the normal price sets every item's buy limit, optionally kept live while you watch.
 - **Auto-Bait and manual bait** with a countdown to the next bait, a chat line for every bait and a "last bait" display.
 - **Profit at a glance.** Estimated profit updates the moment a purchase or bait sale is confirmed, with gold per hour.
-- **SellWheel price list.** All price levels with quantity and cumulative share, your own listings marked, and the two prices you would post highlighted in green and blue. Duration 2h / 8h / 24h and an optional mouse-wheel sale.
+- **SellWheel like a selling tab.** Item on top, two colored price cards (green = cheapest, blue = 25% level, default 50/50) and the cheapest offers below with your prices highlighted. One click sells the first stage, the mouse wheel does the rest. Duration 2h / 8h / 24h.
 
 ## Install
 
@@ -47,8 +47,8 @@
 **Selling with SellWheel**
 
 1. Open **SW** and click an item in your bags. The market price list loads.
-2. Look at the two highlighted prices, adjust the share if you like (default 50% cheapest, 50% at the 25% level) and press **Verkaufen**, once per stage.
-3. Optional: turn on **Mausrad** to post the next stage with a scroll step.
+2. Look at the two highlighted prices, adjust the share if you like (default 50% cheapest, 50% at the 25% level) and press **Verkaufen**. That posts the first stage.
+3. Scroll the mouse wheel to post the rest (the option "Rest per Mausrad" is on by default).
 
 ## How it works
 
