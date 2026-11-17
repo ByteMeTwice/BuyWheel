@@ -821,7 +821,9 @@ local function buildPanel(parent)
             priceRatio:SetText("")
         end
         local average = BW:RefreshAverage()
-        refresh:SetText(average and ("Refresh: %.0f ms"):format(average) or "Refresh: –")
+        local _, _, homePing, worldPing = GetNetStats()
+        local ping = worldPing and worldPing > 0 and ("  ·  Ping %d ms"):format(worldPing) or ""
+        refresh:SetText((average and ("Refresh: %.0f ms"):format(average) or "Refresh: –") .. ping)
         spendLine:SetText(("Spent %s  ·  Budget left %s"):format(compactMoney(BW.spent),
             BW.budget and compactMoney(BW:Remaining()) or "–"))
 

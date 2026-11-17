@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.16 · 2026-11-17
+
+- BWM: the **Refresh** line also shows the world **Ping** (`Refresh: 1919 ms  ·  Ping 60 ms`), and every purchase diagnostic stores `homePingMs` / `worldPingMs`. Refresh is the time between AH replies, which is limited by the game's AH message throttle and your connection; the ping makes visible which of the two is slow.
+
 ## 0.9.15 · 2026-11-17
 
 - BWM: **Auto-Bait and Bait now no longer treat your normal sale listings as baits.** Every item you had any auction of (for example from SellWheel) counted as "own bait up" and was skipped, so with material in the bags the notice still said "No watched item with bait material" (`34 no material, 8 own listing`). An own listing now only counts as a bait when the lowest price of the item is at bait level (at or below the bait price, plus 20% slack for relearned prices).

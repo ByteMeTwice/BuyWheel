@@ -1228,6 +1228,7 @@ function BW:Buy()
         listingRefreshed = details and details.refreshed,
         fullListing = details and details.full,
         refreshAverageMs = self:RefreshAverage(), outcome = "pending", events = {},
+        homePingMs = select(3, GetNetStats()), worldPingMs = select(4, GetNetStats()),
     }
     local history = self.db.purchaseDiagnostics
     scanSample("purchaseAttempts")
