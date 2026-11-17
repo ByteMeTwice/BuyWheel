@@ -2,9 +2,26 @@
 
 **Auction house tools for WoW Classic *Forever*:** buy cheap listings with the mouse wheel, let the addon learn what an item is really worth, and sell with a clear price list.
 
-[Install](#install) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Full reference](docs/REFERENCE.md) · [Changelog](CHANGELOG.md)
+[Install and update](#install-and-update) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Full reference](docs/REFERENCE.md) · [Changelog](CHANGELOG.md)
 
 ---
+
+## Install and update
+
+**The easy way (Windows): one file, no download of the addon**
+
+1. Download **[UpdateBuyWheel.bat](https://raw.githubusercontent.com/ByteMeTwice/BuyWheel/main/UpdateBuyWheel.bat)**: right-click the link and choose *Save link as...*.
+2. Double-click the file. If Windows shows a blue "Windows protected your PC" window, click *More info* and then *Run anyway*.
+3. The file finds your World of Warcraft folder, downloads the newest BuyWheel from GitHub and installs it (the old `AddOns\BuyWheel` folder is replaced). Your saved data (learned prices, settings) is not touched.
+4. Start the game, or type `/reload` if it is already running.
+
+To update later, run **the same file again**. If it cannot find the AddOns folder, it asks you once to paste the folder path (`...\World of Warcraft\_forever_\Interface\AddOns`) and remembers it.
+
+**Manually**
+
+1. [Download the ZIP](https://github.com/ByteMeTwice/BuyWheel/archive/refs/heads/main.zip), unzip it and rename the folder `BuyWheel-main` to **`BuyWheel`**.
+2. Put it into your AddOns directory, so that `BuyWheel.toc` sits directly inside `World of Warcraft\_forever_\Interface\AddOns\BuyWheel`.
+3. Start the game (or `/reload`). To update, replace the folder with a new download. With Git, `git pull` inside the folder is enough.
 
 ## Three tabs, one addon
 
@@ -24,17 +41,6 @@
 - **Bait fingerprint.** Baits are posted at prices that other BuyWheel users recognize; their offers show in violet in the SellWheel table.
 - **Profit at a glance.** Estimated profit updates the moment a purchase or bait sale is confirmed, with gold per hour.
 - **SellWheel like the Auctionator selling tab.** An icon grid of your bags on the left; on the right the item, quantity, duration, two colored price strips (green = cheapest, blue = 25% level, default 50/50) and a scrolling table of the market offers with your two prices highlighted. One click sells the first stage, the mouse wheel does the rest.
-
-## Install
-
-1. [Download the latest version](https://github.com/ByteMeTwice/BuyWheel/archive/refs/heads/main.zip) (or use *Code → Download ZIP*).
-2. Unzip it and rename the folder `BuyWheel-main` to **`BuyWheel`**.
-3. Put the folder into your AddOns directory, for example  
-   `World of Warcraft\_forever_\Interface\AddOns\BuyWheel`  
-   so that `BuyWheel.toc` sits directly inside it.
-4. Start the game (or type `/reload`) and open the auction house. The three tabs appear next to the native ones.
-
-**Updating:** replace the `BuyWheel` folder with the new one. Your data (learned prices, settings, logs) lives in `WTF\...\SavedVariables\BuyWheel.lua`, outside the addon folder, so updates never touch it. If you use Git, `git pull` inside the folder is enough.
 
 ## Quick start
 

@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.4 · 2026-11-17
+
+- **One-file installer and updater for Windows:** `UpdateBuyWheel.bat`. It finds the AddOns folder, downloads the newest version from GitHub and installs it, keeping the saved data. It refuses to touch a Git (development) copy. The README now starts with this.
+
 ## 0.9.3 · 2026-11-17
 
 - SellWheel fix: with "Keep Bait Items" above 0 the second stage of a sale was never posted (the wait for the updated bags compared against the wrong stock). Fixed.

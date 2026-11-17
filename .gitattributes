@@ -1,0 +1,2 @@
+# The batch file must keep its Windows line endings in the repository and in downloads.
+*.bat -text
