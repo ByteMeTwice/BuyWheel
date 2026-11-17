@@ -287,6 +287,31 @@ function SW:Attach()
     local emptyList = label(panel, "Loading market prices …", "GameFontDisableSmall", X + 8, -226, 330)
 
     local note = label(panel, "", "GameFontDisableSmall", 9, -378, 280)
+    -- What was posted so far (saved): the sum of all posts, plus what the 25% level added.
+    local postedBox = CreateFrame("Frame", nil, panel)
+    postedBox:SetPoint("TOPLEFT", 9, -394)
+    postedBox:SetSize(218, 16)
+    postedBox:EnableMouse(true)
+    local postedText = postedBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    postedText:SetPoint("LEFT", postedBox, "LEFT", 0, 0)
+    postedText:SetJustifyH("LEFT")
+    postedBox:SetScript("OnEnter", function(self)
+        local p = SW:PostedSummary()
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Posted")
+        GameTooltip:AddLine("The sum of everything you posted with SellWheel (quantity x price, before fees), saved between sessions. The part after the plus is what the 25% level added compared to selling that quantity at the cheapest price.", 1, 1, 1, true)
+        if p and p.units > 0 then
+            local list = {}
+            for _, item in pairs(p.items) do list[#list + 1] = item end
+            table.sort(list, function(a, b) return a.value > b.value end)
+            for i = 1, math.min(12, #list) do
+                GameTooltip:AddLine(("%s: %d items · %s"):format(list[i].name or "?", list[i].units, money(list[i].value)), 0.8, 0.8, 0.8)
+            end
+        end
+        GameTooltip:Show()
+    end)
+    postedBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    button(panel, "Reset", 44, 232, -391, function() SW:ResetPosted() end)
     panel.durationBoxes = durationBoxes
     panel.quantityBox, panel.shareBox = quantity, share
     panel.sellButton, panel.postButton, panel.stopButton = sell, post, stop
@@ -425,6 +450,15 @@ function SW:Attach()
             if preview and preview.total then infoText = infoText .. ("  ·  Total %s"):format(money(preview.total)) end
         end
         info:SetText(infoText)
+        do
+            local p = SW:PostedSummary()
+            if not p or p.units == 0 then
+                postedText:SetText("Posted: –")
+            else
+                postedText:SetText(("Posted: %s%s"):format(money(p.total),
+                    p.extra > 0 and ("  + %s at 25%%"):format(money(p.extra)) or ""))
+            end
+        end
 
         -- Main button: one step per click.
         local steps, doneSteps = 0, 0

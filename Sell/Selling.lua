@@ -259,6 +259,32 @@ function SW:PlanEntryIndex(plan, card, includeDone)
     end
 end
 
+-- A list of what was posted (saved): the sum of quantity x price, and how much of it came from
+-- the 25% level instead of the cheapest price.
+function SW:RecordPosted(job)
+    local db = self:Settings()
+    local p = db.posted
+    if type(p) ~= "table" then
+        p = { total = 0, extra = 0, units = 0, items = {}, since = time and time() or nil }
+        db.posted = p
+    end
+    local value = job.quantity * job.price
+    local cheapest = job.plan.prices and job.plan.prices[1] and job.plan.prices[1].price or job.price
+    local extra = job.price > cheapest and job.quantity * (job.price - cheapest) or 0
+    p.total, p.extra, p.units = p.total + value, p.extra + extra, p.units + job.quantity
+    local id = job.plan.item.id
+    local item = p.items[id]
+    if not item then
+        item = { name = job.plan.item.name, units = 0, value = 0 }
+        p.items[id] = item
+    end
+    item.units, item.value = item.units + job.quantity, item.value + value
+end
+
+function SW:PostedSummary() return self:Settings().posted end
+
+function SW:ResetPosted() self:Settings().posted = nil end
+
 function SW:FinishSellPost(success, message)
     local job = self.post
     if not job then return end
@@ -270,6 +296,7 @@ function SW:FinishSellPost(success, message)
         local entry = job.plan.entries[job.index]
         Addon:NoteOwnPost(job.plan.item.key.itemID, job.price, job.duration)
         self.lastSoldID = job.plan.item.id
+        self:RecordPosted(job)
         if Addon.Multi.NoteOwnAction then Addon.Multi:NoteOwnAction(job.plan.item.id) end
         entry.remaining = entry.remaining - job.quantity
         job.plan.posted = (job.plan.posted or 0) + 1

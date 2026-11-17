@@ -700,6 +700,12 @@ test("The Sell button runs the stages one click at a time; Stop only shows while
     eq(f.sell.plan, nil)
     panel:RefreshSellWheel()
     assert(not panel.stopButton.shown, "the finished plan hides Stop again")
+    local posted = f.sell:PostedSummary()
+    eq(posted.total, 50 * 200 + 50 * 204, "the list adds up what was posted")
+    eq(posted.extra, 50 * 4, "the 25% level added 4 per item over the cheapest price")
+    eq(posted.units, 100)
+    f.sell:ResetPosted()
+    eq(f.sell:PostedSummary(), nil)
 end)
 
 test("Delayed bag updates prevent the next stage from posting stale stock", function()
