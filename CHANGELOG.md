@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.8 · 2026-11-17
+
+- BuyWheelS: "Spend up to" moved to the bottom, between the option checkboxes and the spending statistics (it is a setting you make beforehand). Repeat bait is back above GO / STOP.
+
 ## 0.7.7 · 2026-11-17
 
 - BuyWheelS: the two prices belong together now. Top row: Max Buy Price (left) and Bait sell price with the Bait button and its timer (right). The row below holds "Spend up to" and Repeat bait; GO / STOP follow.
