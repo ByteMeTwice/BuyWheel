@@ -25,7 +25,7 @@ function SW:RefreshInventory()
                 local loc = ItemLocation:CreateFromBagAndSlot(bag, slot)
                 local key = AH.GetItemKeyFromItem(loc)
                 local commodity = AH.GetItemCommodityStatus(loc) == Enum.ItemCommodityStatus.Commodity
-                if key and commodity and AH.IsSellItemValid(loc) then
+                if key and commodity and AH.IsSellItemValid(loc, false) then
                     local watchID = id(key)
                     local entry = items[watchID]
                     if not entry then

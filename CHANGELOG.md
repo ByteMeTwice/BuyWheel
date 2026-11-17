@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.10 · 2026-11-17
+
+- SellWheel: no more "You cannot sell a soulbound item" messages in the chat. The bag scan asked the game whether each item can be sold and let it print an error for soulbound commodities (for example Marks of Honor). Such items were never offered; now the scan is silent.
+
 ## 0.9.9 · 2026-11-17
 
 - BWM: **ROB (Return on Bait)** in the Auto-Bait row, right edge: `ROB 62% · 18/29` = baits that were followed by purchases at the bait price or below (others matched or undercut it), out of all finished baits. A bait's window ends with the next bait of that item or after 10 minutes; baits still in their window are not counted yet. Tooltip: open baits, items bought, average per successful bait and the numbers per item. Reset with the purchase statistics reset.
