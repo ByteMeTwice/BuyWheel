@@ -19,7 +19,7 @@ Everything that buys or posts needs a real input from you (a click or a mouse-wh
 
 - It is measured from the **market depth**: the price at which the first 10% of the supply (at least 20 units) is reached, without your own listings. A thin bait listing at the very bottom cannot move it, and your own purchases barely do.
 - It is deliberately **conservative**: of several measurements the lower quartile counts, and it never lies more than 5% above the median of the lowest prices.
-- Where the measurements come from: **Start Learning Prices** (several depth queries per item), the listings the addon loads anyway before a purchase, SellWheel, and the optional low query rate **Depth/min**.
+- Where the measurements come from: **Start Learning Prices** (several depth queries per item), the listings the addon loads anyway before a purchase, SellWheel, and one automatic depth query per minute while watching.
 - Between measurements the lowest price moves the value, within bounds.
 - **Trust colors** in the favorites list: grey = fine, yellow = be careful (only the lowest price was measured, or the market is moving), red = old (no measurement for 10 minutes while watching).
 - **Reset learned** deletes everything learned, so the next learning run is the only data in use.

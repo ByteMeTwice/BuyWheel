@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.6 · 2026-11-17
+
+- BuyWheelM: the "Depth/min" field is gone; the watching loop runs one depth measurement per minute (not a setting any more).
+- BuyWheelM: the bait status moved to the state row, so it no longer overlaps the spending line; the profit and rates lines use the full width. "unpriced" in the profit line now reads "not counted" (units without a known normal price at purchase, or baits whose item was not bought in this profit period).
+
 ## 0.9.5 · 2026-11-17
 
 - The learned normal price is more conservative: of several depth measurements the lower quartile counts instead of the middle, and the normal price may lie at most 5% above the median of the lowest prices. Items with a thin top of the book (Linen Cloth, Solid Stone, ...) were valued up to 19% too high, which made their usual lowest price look like a bargain.

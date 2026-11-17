@@ -285,7 +285,7 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
         local unknown = stats and ((stats.profitUnknownUnits or 0) + (stats.baitUnpriced or 0)) or 0
         local amount = valued == 0 and unknown > 0 and "–" or profitMoney(total)
         local color = valued == 0 and "|cffaaaaaa" or total < 0 and "|cffff6464" or "|cff60eb80"
-        local suffix = unknown > 0 and (" · %d unpriced"):format(unknown) or ""
+        local suffix = unknown > 0 and (" · %d not counted"):format(unknown) or ""
         return "Est. profit: " .. color .. amount .. " · " .. hourlyText .. "|r" .. suffix
     end
     function panel:RefreshPurchaseStats()
@@ -324,7 +324,7 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
         detail:SetShown(isMulti or not compact)
         rates:ClearAllPoints()
         rates:SetPoint("TOPLEFT", 0, isMulti and -22 or compact and 0 or -20)
-        rates:SetWidth(isMulti and 270 or compact and 276 or 354)
+        rates:SetWidth(isMulti and 430 or compact and 276 or 354)
         rates:SetFontObject(isMulti and "GameFontDisableSmall" or "GameFontHighlight")
         local row = stats and stats.rows[key]
         local seconds = Addon:PurchaseStatsSeconds(mode, key)
@@ -337,7 +337,7 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
             displayedSignature = profitSignature(stats)
             profit:ClearAllPoints()
             profit:SetPoint("TOPLEFT", 0, isMulti and 0 or compact and -20 or -40)
-            profit:SetWidth(isMulti and 270 or 354)
+            profit:SetWidth(isMulti and 430 or 354)
             profit:SetFontObject(isMulti and "GameFontHighlight" or "GameFontHighlightSmall")
             profit:Show()
             profit:SetText(profitLine(stats, cachedHourlyText))

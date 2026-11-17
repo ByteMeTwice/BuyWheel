@@ -405,9 +405,11 @@ local function buildPanel(parent)
     lastBait:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -295)
     lastBait:SetWidth(150)
     lastBait:SetJustifyH("RIGHT")
-    local baitStatus = label(panel, "", "GameFontDisableSmall", x + 200, -281)
+    -- Bait status: right side of the state row (the spending line stays free).
+    local baitStatus = label(panel, "", "GameFontDisableSmall", x + 200, -314)
     baitStatus:ClearAllPoints()
-    baitStatus:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -281)
+    baitStatus:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -314)
+    baitStatus:SetWidth(215)
     baitStatus:SetJustifyH("RIGHT")
 
     -- Keep session controls fixed at the bottom of the right column. The
@@ -422,7 +424,7 @@ local function buildPanel(parent)
     controlsDivider:SetHeight(1)
     controlsDivider:SetColorTexture(0.65, 0.56, 0.38, 0.5)
     local state = label(panel, "", "GameFontHighlightSmall", x, -312)
-    state:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -312)
+    state:SetWidth(205)
     state:SetHeight(26)
     state:SetWordWrap(true)
     state:SetJustifyV("TOP")
@@ -473,24 +475,6 @@ local function buildPanel(parent)
     end)
     bait:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Depth queries per minute (0 = off): how often the watched item with the oldest
-    -- depth measurement gets a detail query for its normal price.
-    label(watchSettings, "Depth/min", "GameFontNormalSmall", x + 150, -76)
-    local depthRate = edit(watchSettings, 28, x + 214, -70, 1)
-    depthRate:SetNumeric(true)
-    depthRate:SetText(tostring(BW:DepthRate()))
-    depthRate:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then BW:SetDepthRate(self:GetText()) end
-    end)
-    depthRate:SetScript("OnEditFocusLost", function(self) self:SetText(tostring(BW:DepthRate())) end)
-    depthRate:SetScript("OnEnterPressed", depthRate.ClearFocus)
-    depthRate:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Depth measurements per minute (0 = off)")
-        GameTooltip:AddLine("While watching, one commodity at a time gets a detail query to measure its price depth (price at which the first 10% of the supply, at least 20 units, is reached). Never sent while a purchase, bait or offer is pending. One query costs about one scan cycle. Listings loaded for purchases and SellWheel count for free.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    depthRate:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Auto-bait row: checkbox, baits per minute (1-10) and bait price as a percent
     -- of the learned normal price.
@@ -528,10 +512,10 @@ local function buildPanel(parent)
         GameTooltip:Show()
     end)
     baitLasts:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- Bait price: first options row, right of Depth/min.
-    label(panel, "Bait price", "GameFontNormalSmall", x + 262, -76)
-    local baitPercent = edit(panel, 40, x + 314, -70, 4)
-    label(panel, "% of normal", "GameFontNormalSmall", x + 358, -76)
+    -- Bait price: first options row, right of Leave Bait.
+    label(panel, "Bait price", "GameFontNormalSmall", x + 130, -76)
+    local baitPercent = edit(panel, 40, x + 184, -70, 4)
+    label(panel, "% of normal", "GameFontNormalSmall", x + 228, -76)
     baitPercent:SetNumeric(true)
     baitPercent:SetText(tostring(BW:AutoBaitPercent()))
     baitPercent:SetScript("OnEnter", function(self)

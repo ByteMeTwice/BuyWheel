@@ -123,20 +123,16 @@ test("Own buys and baits pause the measurement of that item for 30 seconds", fun
     eq(#f.mode.db.learnedPrices["765:5:0:0"].depthList, 1, "free samples are limited to one a minute per item")
 end)
 
-test("The depth rate defaults to 1 per minute, accepts 0-6 and schedules probes", function()
+test("Depth probes run once a minute (fixed) and are scheduled around that", function()
     local f = fixture()
     eq(f.mode:DepthRate(), 1)
-    f.mode:SetDepthRate(7)
-    eq(f.mode:DepthRate(), 1)
-    f.mode:SetDepthRate(0)
-    eq(f.mode:DepthDue(), false, "0 switches the probes off")
-    f.mode:SetDepthRate(3)
-    eq(f.mode:DepthRate(), 3)
     eq(f.mode:DepthDue(), true)
     f.mode:DepthScheduled()
     eq(f.mode:DepthDue(), false)
-    f.now = f.now + 30
-    eq(f.mode:DepthDue(), true, "at 3 per minute the next probe is due within about 24 seconds")
+    f.now = f.now + 40
+    eq(f.mode:DepthDue(), false, "the next probe is due after 48 to 72 seconds")
+    f.now = f.now + 40
+    eq(f.mode:DepthDue(), true)
 end)
 
 print("PASS " .. count .. " Depth scenarios")

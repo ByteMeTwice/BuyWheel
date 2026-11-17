@@ -467,7 +467,7 @@ shows the average price paid the same way ("80% of normal price").
 
 The right column follows the order of use: learning (Max buy %, Limit live, Start
 learning), the shared budget in whole gold, the options (Leave
-Bait, depth queries per minute; Buy Bait is removed here and Volume Trading is always on), the selected item with its max buy price and
+Bait; Buy Bait is removed here and Volume Trading is always on), the selected item with its max buy price and
 learned normal price, then a compact statistics block, the status line and
 Start watching / STOP. The statistics lead with the larger Est. profit line
 (with gold/hour); items/min, spending, budget left and
@@ -539,10 +539,9 @@ Depth samples come from:
   latency.
 - **Free samples:** listings that are loaded anyway (before a purchase) and
   SellWheel's price levels, at most one per item and minute.
-- **Depth queries per minute** (field "Depth/min" next to Leave Bait, default 1,
-  0 = off): while watching, the watched commodity with the oldest depth sample
-  gets a detail query, one every 60/rate seconds. Never while a purchase, bait,
-  post or offer is pending. One query costs about one scan cycle.
+- **One depth query per minute** (fixed): while watching, the watched commodity
+  with the oldest depth sample gets a detail query, about every 60 seconds. Never
+  while a purchase, bait, post or offer is pending. One query costs about one scan cycle.
 
 The value is deliberately conservative: of several depth measurements the **lower
 quartile** counts (not the middle), and the normal price **never lies more than 5%

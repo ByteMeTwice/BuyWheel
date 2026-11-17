@@ -23,7 +23,6 @@ local ratioLow, ratioHigh = 0.7, 1.4
 -- median of the lowest prices (what you really pay), and of several depth
 -- measurements the lower quartile is used, not the middle.
 local normalCap = 1.05
-local maxRate = 6
 
 local function serverNow() return GetServerTime and GetServerTime() or time() end
 
@@ -201,18 +200,8 @@ function BW:NormalInfo(id)
     return "|cffffd100rough · " .. text .. "|r", "rough", age
 end
 
--- Depth queries per minute (0 = off). Default 1.
-function BW:DepthRate()
-    local rate = tonumber(self.db.depthPerMinute)
-    if not rate then return 1 end
-    return math.max(0, math.min(maxRate, math.floor(rate)))
-end
-
-function BW:SetDepthRate(value)
-    local number = tonumber(value)
-    if not number or number ~= math.floor(number) or number < 0 or number > maxRate then return end
-    self.db.depthPerMinute = number
-end
+-- One depth query per minute while watching (fixed, no setting).
+function BW:DepthRate() return 1 end
 
 -- True when the next depth probe is due while watching.
 function BW:DepthDue()

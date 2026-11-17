@@ -43,7 +43,7 @@ What each control does, tab by tab. The three tabs sit next to the native auctio
 - **Reset learned (bottom left):** deletes all learned prices, measurements and the limits derived from them (after a confirmation). Run **Start Learning Prices** again afterwards.
 - **Shared budget:** the total gold for the run (whole gold).
 - **Limit live:** keeps every limit at Max buy % of the current normal price while you watch.
-- **Depth/min [N]:** how many depth measurements per minute the watching loop may spend on the item with the oldest measurement (default 1, 0 = off). It never runs during a purchase, bait or offer.
+- **Depth measurements while watching:** one per minute, automatically, for the item with the oldest measurement (never during a purchase, bait or offer).
 
 ### Bait
 - **Leave Bait:** leaves one item at the lowest price.
