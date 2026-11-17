@@ -153,6 +153,7 @@ local function fixture()
     env.AuctionHouseFrame = object("AuctionHouse")
     env.AuctionHouseFrame.Tabs = { object("NativeTab") }
     setfenv(assert(loadfile(root .. "Core.lua")), env)("BuyWheel", addon)
+    setfenv(assert(loadfile(root .. "Fingerprint.lua")), env)("BuyWheel", addon)
     setfenv(assert(loadfile(root .. "Sell/Market.lua")), env)("BuyWheel", addon)
     setfenv(assert(loadfile(root .. "Sell/Selling.lua")), env)("BuyWheel", addon)
     setfenv(assert(loadfile(root .. "Sell/Panel.lua")), env)("BuyWheel", addon)
@@ -392,6 +393,19 @@ test("A large real level below the 5% point still counts as the cheapest price",
         { unitPrice = 2085, quantity = 29 }, { unitPrice = 2086, quantity = 585 },
         { unitPrice = 2500, quantity = 5000 } })
     eq(f.sell.presets[1].price, 1960, "188 units are 3% of the supply: a real level, the 1-unit bait is skipped")
+end)
+
+test("Price levels that look like another BuyWheel bait are marked", function()
+    local f = fixture()
+    f.bags[0][1].stackCount = 100
+    f:open()
+    local bait = f.addon:FingerprintPrice(300, 2589)
+    f:read(2589, { { unitPrice = bait, quantity = 1 }, { unitPrice = bait + 1, quantity = 1 },
+        { unitPrice = 400, quantity = 500 }, { unitPrice = 450, quantity = 3000 } })
+    local marked = {}
+    for _, row in ipairs(f.sell.listing) do if row.bait then marked[#marked + 1] = row.price end end
+    eq(#marked, 1, "only the qualifying one-unit level is marked")
+    eq(marked[1], bait)
 end)
 
 test("In a huge market the first real level is the cheapest price", function()

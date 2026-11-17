@@ -148,10 +148,15 @@ function SW:UpdatePrices()
     -- share of the competing supply, and the rows our two prices land on. A
     -- planned price without a level of its own becomes a separate row.
     local rows, cumulative = {}, 0
+    local normal = self.selected and Addon.LearnedNormalPrice and Addon.Multi
+        and Addon:LearnedNormalPrice(Addon.Multi, self.selected.id)
+    local itemID = self.selected and self.selected.key and self.selected.key.itemID
     for _, tier in ipairs(self.tiers) do
         cumulative = cumulative + (tier.quantity - tier.owned)
         rows[#rows + 1] = { price = tier.price, quantity = tier.quantity, owned = tier.owned,
-            share = total > 0 and cumulative / total or 0 }
+            share = total > 0 and cumulative / total or 0,
+            -- Probably a bait of another BuyWheel user (see Fingerprint.lua).
+            bait = Addon.LooksLikeBait and Addon:LooksLikeBait(tier.price, itemID, tier.quantity - tier.owned, normal) or nil }
     end
     for stage, preset in ipairs(self.presets) do
         local placed

@@ -597,3 +597,20 @@ the watched items (with a learned normal price) in your bags by the hours that a
 left, and corrects as you use material. It wins over the fixed number. The status
 at the right edge shows the current budget ("budget 5.3/h") and the countdown to
 the next bait. A bait uses one saved-up unit; baits from the Bait now button do not.
+
+## Bait fingerprint
+
+A bait is posted at the nearest price that satisfies a fixed rule, so BuyWheel can
+recognize the baits of other BuyWheel users (it is always on, there is no setting):
+a price qualifies when `(price + itemID)` is divisible by M, with M = 11 from 2s,
+23 from 5s, 97 from 20s and 499 from 1g. The price moves by about 2.5% at most
+(up to 5% right at 2s). Below 2s there is no fingerprint, and the bait keeps its
+price. It applies to Auto-Bait, Bait now and the Bait button of BuyWheelS (so the
+posted price can differ slightly from the number you typed; the bait chat line and
+the post log show the price that was posted).
+
+In the SellWheel table a level is shown in **violet** with "BW" in the Own column
+when it matches the rule, has at most two units and, if the normal price is
+known, costs at most 80% of it. That makes it a probable BuyWheel bait. A chance
+match is about 1 in 11 at 2s and much rarer higher up; the extra conditions make
+it rarer still. Nothing is excluded from any calculation: the color is only a hint.

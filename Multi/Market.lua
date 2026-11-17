@@ -1398,6 +1398,10 @@ function BW:PostOne()
         self.notice = "Invalid price · the auction house only accepts whole silver amounts."
         return
     end
+    -- Fingerprint: the nearest price that marks this bait as one of BuyWheel's.
+    if target.commodity and (not AH.SupportsCopperValues or AH.SupportsCopperValues()) then
+        price = Addon:FingerprintPrice(price, target.key.itemID)
+    end
 
     if not self:PostReady() then
         if not baitWait then

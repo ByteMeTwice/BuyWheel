@@ -9,7 +9,7 @@ end
 
 -- Compile every loaded addon file as well as executing Market against a small,
 -- deterministic AH. No real client, purchases or network calls are involved.
-for _, path in ipairs({ "Core.lua", "Feedback.lua", "Statistics.lua", "Help.lua",
+for _, path in ipairs({ "Core.lua", "Fingerprint.lua", "Feedback.lua", "Statistics.lua", "Help.lua",
     "Single/Market.lua", "Single/Panel.lua", "Multi/Market.lua", "Multi/Multi.lua",
     "Multi/Learning.lua", "Multi/Depth.lua", "Multi/Panel.lua", "Sell/Market.lua", "Sell/Selling.lua", "Sell/Panel.lua" }) do
     assert(loadfile(root .. path))
@@ -29,6 +29,12 @@ local function fixture(options)
     function addon:RecordBaitSale() end
     function addon:NoteOwnPost() end
     function addon:IsMarketRow(row) return not row.containsOwnerItem and not row.containsAccountItem end
+    if options.fingerprint then
+        setfenv(assert(loadfile(root .. "Fingerprint.lua")), env)("BuyWheel", addon)
+    else
+        function addon:FingerprintPrice(price) return price end
+        function addon:LooksLikeBait() return false end
+    end
     function addon:StartPurchaseStats() end
     function addon:StopPurchaseStats() end
     function addon:Notify(m, message) m.notice = message end
@@ -1389,6 +1395,22 @@ test("Bait budget: it saves up while blocked, and Lasts derives the budget from 
     assert(math.abs(perHour - 1) < 1e-6, "one hour left: the same stock must last half the time, got " .. tostring(perHour))
     mode:SetBaitLastsHours(0)
     eq(mode:AutoBaitBudget(), 6, "0 switches Lasts off again")
+end)
+
+test("Bait prices carry the fingerprint in Single and Multi", function()
+    for _, multi in ipairs({ false, true }) do
+        local f = fixture({ multi = multi, baitPrice = 12345, fingerprint = true })
+        f.mode:PostOne()
+        eq(f:total("post"), 1)
+        local posted = f.calls[#f.calls].args[4]
+        eq(posted, f.addon:FingerprintPrice(12345, 2589))
+        assert(posted ~= 12345 and f.addon:FingerprintMatches(posted, 2589), "the price is moved to a qualifying one")
+        eq(f.mode.db.postDiagnostics[1].price, posted, "the diagnostics keep the price that was posted")
+        -- Cheap baits keep their exact price.
+        f = fixture({ multi = multi, baitPrice = 150, fingerprint = true })
+        f.mode:PostOne()
+        eq(f.calls[#f.calls].args[4], 150)
+    end
 end)
 
 print("PASS " .. count .. " integration scenarios; all addon files compile as Lua 5.1")

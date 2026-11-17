@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.1 · 2026-11-17
+
+- **Bait fingerprint:** every bait is posted at the nearest price that satisfies a fixed rule (from 2s up), so other BuyWheel users can recognize it. Always on, no setting. In the SellWheel table a probable BuyWheel bait is shown in violet with "BW" in the Own column.
+
 ## 0.9.0 · 2026-11-17
 
 - Auto-Bait gets a **bait budget**: "budget" (baits per hour on average) saves up while the market is busy and is spent at the bait speed ("per min") in the quiet windows, so day and night no longer behave completely differently. "lasts" (hours) works the budget out from the bait material in your bags and the time left.

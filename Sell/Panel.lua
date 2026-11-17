@@ -73,7 +73,7 @@ local function itemIcon(id)
     if GetItemIcon then return GetItemIcon(id) end
 end
 
-local GREEN, BLUE = "|cff60eb80", "|cff66b3ff"
+local GREEN, BLUE, VIOLET = "|cff60eb80", "|cff66b3ff", "|cffc77dff"
 local function stageColor(stage)
     if stage == 2 then return BLUE end
     return GREEN
@@ -355,15 +355,18 @@ function SW:Attach()
             local entry, row = listing[i], getRow(i)
             row:Show()
             local color = entry.stage and (entry.stage == 3 and GREEN or stageColor(entry.stage)) or ""
+            if color == "" and entry.bait then color = VIOLET end
             local tint
             if entry.stage == 2 then tint = { 0.25, 0.55, 1, 0.30 }
             elseif entry.stage then tint = { 0.2, 0.8, 0.35, 0.30 }
+            elseif entry.bait then tint = { 0.7, 0.35, 1, 0.24 }
             elseif i % 2 == 0 then tint = { 1, 1, 1, 0.04 } end
             if tint then row.bg:SetColorTexture(unpack(tint)) else row.bg:SetColorTexture(0, 0, 0, 0) end
             row.price:SetText(color .. money(entry.price) .. (color ~= "" and "|r" or ""))
             row.quantity:SetText(entry.planned and "" or tostring(entry.quantity))
             row.share:SetText(("%.0f%%"):format((entry.share or 0) * 100))
-            row.owned:SetText(entry.owned and entry.owned > 0 and "|cffffd100Ja|r" or "|cff808080Nein|r")
+            row.owned:SetText(entry.owned and entry.owned > 0 and "|cffffd100Yes|r"
+                or entry.bait and (VIOLET .. "BW|r") or "|cff808080No|r")
             local tag = ""
             if entry.stage and preview then
                 local amount = entry.stage == 3 and preview.quantity or (preview.counts[entry.stage] or 0)

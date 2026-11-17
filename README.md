@@ -21,6 +21,7 @@
 - **Color-coded trust.** In the favorites list the learned price is grey when reliable, yellow when you should be careful and red when it is old.
 - **Max buy %.** One percentage of the normal price sets every item's buy limit, optionally kept live while you watch.
 - **Auto-Bait and manual bait** with a countdown to the next bait, a chat line for every bait and a "last bait" display.
+- **Bait fingerprint.** Baits are posted at prices that other BuyWheel users recognize; their offers show in violet in the SellWheel table.
 - **Profit at a glance.** Estimated profit updates the moment a purchase or bait sale is confirmed, with gold per hour.
 - **SellWheel like the Auctionator selling tab.** An icon grid of your bags on the left; on the right the item, quantity, duration, two colored price strips (green = cheapest, blue = 25% level, default 50/50) and a scrolling table of the market offers with your two prices highlighted. One click sells the first stage, the mouse wheel does the rest.
 
