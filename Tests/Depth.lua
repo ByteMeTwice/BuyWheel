@@ -74,7 +74,7 @@ test("Depth samples expire and the status shows the age", function()
     f.mode:RecordDepth(id, 50)
     local text, state = f.mode:NormalInfo(id)
     eq(state, "ok")
-    assert(text:find("Tiefe"))
+    assert(text:find("Depth"))
     f.server = f.server + 91 * 60
     local learned = f.mode.db.learnedPrices[id]
     eq(f.mode:NormalFromMeasurements(learned, 44), 44, "old depth samples no longer count")

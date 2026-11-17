@@ -122,20 +122,40 @@ function SW:Attach()
             if not self.item then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(self.item.name)
-            GameTooltip:AddLine(("In Taschen: %d · frei: %d"):format(self.item.quantity, self.item.available), 1, 1, 1)
-            GameTooltip:AddLine("Klicken lädt die Marktpreise. Eingestellt wird erst mit Verkaufen.", 1, 1, 1, true)
+            GameTooltip:AddLine(("In bags: %d · free: %d"):format(self.item.quantity, self.item.available), 1, 1, 1)
+            GameTooltip:AddLine("Click to load the market prices. Nothing is posted until you press Sell.", 1, 1, 1, true)
             GameTooltip:Show()
         end)
         cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
         cells[i] = cell
     end
-    local empty = label(panel, "Keine verkaufbaren Rohstoffe in den Taschen.", nil, 14, -34, 250)
+    local empty = label(panel, "No sellable commodities in your bags.", nil, 14, -34, 250)
+    label(panel, "Keep Bait Items", "GameFontNormalSmall", 14, -325, 100)
+    local keepBox = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+    keepBox:SetPoint("TOPLEFT", 118, -317)
+    keepBox:SetSize(52, 24)
+    keepBox:SetAutoFocus(false)
+    keepBox:SetNumeric(true)
+    keepBox:SetMaxLetters(7)
+    keepBox:SetScript("OnEnterPressed", keepBox.ClearFocus)
+    keepBox:SetScript("OnEscapePressed", keepBox.ClearFocus)
+    keepBox:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then SW:SetKeepCount(self:GetText()) end
+    end)
+    keepBox:SetScript("OnEditFocusLost", function(self) self:SetText(tostring(SW:KeepCount())) end)
+    keepBox:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Keep Bait Items")
+        GameTooltip:AddLine("This many items of every commodity are never sold: they stay in your bags to be used as bait. 0 switches this off. Can only be changed while no sale plan is running.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    keepBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local invPrev = button(panel, "‹", 34, 9, -343, function() SW.inventoryPage = SW.inventoryPage - 1 end)
     local invNext = button(panel, "›", 34, 47, -343, function() SW.inventoryPage = SW.inventoryPage + 1 end)
     local invPage = label(panel, "", nil, 92, -351, 120)
 
     -- ---- Right top: item, quantity, duration ----
-    local title = label(panel, "Links ein Item auswählen.", "GameFontHighlightLarge", X, -2, 340)
+    local title = label(panel, "Select an item on the left.", "GameFontHighlightLarge", X, -2, 340)
     local iconBorder = panel:CreateTexture(nil, "BACKGROUND")
     iconBorder:SetPoint("TOPLEFT", X - 2, -24)
     iconBorder:SetSize(68, 68)
@@ -158,27 +178,27 @@ function SW:Attach()
     local refresh = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     refresh:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -2)
     refresh:SetSize(100, 24)
-    refresh:SetText("Aktualisieren")
+    refresh:SetText("Refresh")
     refresh:SetScript("OnClick", function()
         if SW.selected and SW:CanEditSale() then SW:Select(SW.selected) end
     end)
     refresh:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:AddLine("Marktpreise neu laden")
+        GameTooltip:AddLine("Reload the market prices")
         GameTooltip:Show()
     end)
     refresh:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    label(panel, "Menge", "GameFontNormalSmall", X + 78, -36, 48)
+    label(panel, "Quantity", "GameFontNormalSmall", X + 78, -36, 54)
     local quantity = edit(64, X + 126, -30)
     quantity:SetScript("OnTextChanged", function(self, userInput)
         if userInput and SW:CanEditSale() then SW.quantity = self:GetText() end
     end)
-    local all = button(panel, "Alle", 50, X + 196, -30, function()
-        if SW:CanEditSale() and SW.selected then SW.quantity = SW.selected.available end
+    local all = button(panel, "Max", 50, X + 196, -30, function()
+        if SW:CanEditSale() and SW.selected then SW.quantity = SW:Sellable(SW.selected) end
         panel:RefreshSellWheel()
     end)
-    label(panel, "Laufzeit", "GameFontNormalSmall", X + 266, -36, 46)
+    label(panel, "Duration", "GameFontNormalSmall", X + 262, -36, 54)
     local durationBoxes = {}
     for index, hours in ipairs(SW.durationHours) do
         local box = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
@@ -193,8 +213,8 @@ function SW:Attach()
         end)
         box:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:AddLine(("Laufzeit %d Stunden"):format(hours))
-            GameTooltip:AddLine("Dauer der eingestellten Auktionen. Längere Laufzeit bedeutet meist höhere Anzahlung. Nur änderbar, solange kein Verkaufsplan läuft.", 1, 1, 1, true)
+            GameTooltip:AddLine(("Duration: %d hours"):format(hours))
+            GameTooltip:AddLine("How long the posted auctions last. A longer duration usually means a higher deposit. Can only be changed while no sale plan is running.", 1, 1, 1, true)
             GameTooltip:Show()
         end)
         box:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -212,7 +232,7 @@ function SW:Attach()
         card.bg:SetAllPoints(card)
         if stage == 1 then card.bg:SetColorTexture(0.2, 0.8, 0.35, 0.28)
         else card.bg:SetColorTexture(0.25, 0.55, 1, 0.30) end
-        card.name = label(card, stage == 1 and "Günstigstes" or "25 %-Stufe", "GameFontNormal", 6, -6, 82)
+        card.name = label(card, stage == 1 and "Cheapest" or "25% level", "GameFontNormal", 6, -6, 82)
         card.price = label(card, "", "GameFontHighlight", 90, -6, 90)
         card.amount = label(card, "", "GameFontHighlight", 182, -6, 66)
         card.total = label(card, "", "GameFontDisableSmall", 250, -8, 60)
@@ -231,7 +251,7 @@ function SW:Attach()
     local info = label(panel, "", "GameFontNormalSmall", X + 78, -120, 362)
 
     -- ---- Sell button (the first stage); the wheel does the rest ----
-    local sell = button(panel, "Verkaufen", 200, X + 78, -136, function()
+    local sell = button(panel, "Sell", 200, X + 78, -136, function()
         quantity:ClearFocus()
         share:ClearFocus()
         SW:PostNext()
@@ -239,7 +259,7 @@ function SW:Attach()
     end)
     sell:SetHeight(28)
     -- Only shown while the AH asks for a confirmation of the current post.
-    local post = button(panel, "Bestätigen", 200, X + 78, -136, function()
+    local post = button(panel, "Confirm", 200, X + 78, -136, function()
         quantity:ClearFocus()
         SW:PostNext()
         panel:RefreshSellWheel()
@@ -253,23 +273,23 @@ function SW:Attach()
     stop:SetHeight(28)
     stop:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Verkaufsplan stoppen")
-        GameTooltip:AddLine("Bereits eingestellte Auktionen bleiben bestehen. Bei unklarem Ergebnis erst die eigenen Auktionen prüfen; Freigeben wiederholt keine Einstellaktion.", 1, 1, 1, true)
+        GameTooltip:AddLine("Stop the sale plan")
+        GameTooltip:AddLine("Auctions that are already posted stay listed. If the result is unclear, check your own auctions first; Release does not repeat any posting.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     stop:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local wheelBox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
     wheelBox:SetPoint("TOPLEFT", X + 354, -138)
     wheelBox:SetSize(24, 24)
-    label(panel, "Mausrad", "GameFontHighlightSmall", X + 380, -145, 60)
+    label(panel, "Wheel", "GameFontHighlightSmall", X + 380, -145, 60)
     wheelBox:SetScript("OnClick", function(self)
         SW:SetWheelEnabled(self:GetChecked() == true)
         panel:RefreshSellWheel()
     end)
     wheelBox:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Rest per Mausrad")
-        GameTooltip:AddLine("An: Der erste Klick auf Verkaufen stellt die erste Stufe ein. Danach macht jeder Mausradschritt den nächsten Schritt (einstellen bzw. bestätigen), solange der Plan läuft. Ohne laufenden Plan macht das Mausrad nichts.", 1, 1, 1, true)
+        GameTooltip:AddLine("Rest by mouse wheel")
+        GameTooltip:AddLine("On: the first click on Sell posts the first stage. After that every mouse wheel step does the next step (post or confirm) while the plan runs. Without a running plan the wheel does nothing.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     wheelBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -283,13 +303,13 @@ function SW:Attach()
     header:SetPoint("TOPLEFT", X, -198)
     header:SetSize(424, 20)
     header:SetColorTexture(0.18, 0.15, 0.1, 1)
-    label(panel, "Preis", "GameFontNormalSmall", X + 8, -203, 100)
-    local headQuantity = label(panel, "Verfügbar", "GameFontNormalSmall", X + 104, -203, 74)
+    label(panel, "Price", "GameFontNormalSmall", X + 8, -203, 100)
+    local headQuantity = label(panel, "Available", "GameFontNormalSmall", X + 104, -203, 74)
     headQuantity:SetJustifyH("RIGHT")
-    local headShare = label(panel, "Konkurrenz kum.", "GameFontNormalSmall", X + 180, -203, 80)
+    local headShare = label(panel, "Cumulative", "GameFontNormalSmall", X + 180, -203, 80)
     headShare:SetJustifyH("RIGHT")
-    label(panel, "Dein", "GameFontNormalSmall", X + 268, -203, 40)
-    label(panel, "Verkauf", "GameFontNormalSmall", X + 318, -203, 100)
+    label(panel, "Own", "GameFontNormalSmall", X + 268, -203, 40)
+    label(panel, "Sale", "GameFontNormalSmall", X + 318, -203, 100)
     local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", X, -220)
     scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -30, 6)
@@ -315,7 +335,7 @@ function SW:Attach()
         listRows[i] = row
         return row
     end
-    local emptyList = label(panel, "Marktpreise laden …", "GameFontDisableSmall", X + 8, -226, 330)
+    local emptyList = label(panel, "Loading market prices …", "GameFontDisableSmall", X + 8, -226, 330)
 
     local note = label(panel, "", "GameFontDisableSmall", 9, -378, 280)
     panel.durationBoxes = durationBoxes
@@ -347,7 +367,7 @@ function SW:Attach()
             local tag = ""
             if entry.stage and preview then
                 local amount = entry.stage == 3 and preview.quantity or (preview.counts[entry.stage] or 0)
-                tag = ("%s> %d Stück|r"):format(color, amount)
+                tag = ("%s> %d items|r"):format(color, amount)
             end
             row.tag:SetText(tag)
         end
@@ -386,10 +406,12 @@ function SW:Attach()
 
         -- Right: item.
         local item = SW.plan and SW.plan.item or SW.selected
-        title:SetText(item and item.name or "Links ein Item auswählen.")
+        title:SetText(item and item.name or "Select an item on the left.")
         local texture = item and item.key and itemIcon(item.key.itemID)
         if texture then icon:SetTexture(texture) icon:Show() else icon:Hide() end
         local editable = SW:CanEditSale()
+        keepBox:SetEnabled(editable)
+        if not keepBox:HasFocus() then keepBox:SetText(tostring(SW:KeepCount())) end
         local preview, problem = SW:SalePreview()
         local plan = SW.plan
         preview = plan or preview
@@ -410,7 +432,7 @@ function SW:Attach()
             elseif merged and stage == 2 then
                 card.price:SetText(money(preset.price))
                 card.amount:SetText("")
-                card.total:SetText("wie Stufe 1")
+                card.total:SetText("same as stage 1")
             else
                 local amount = merged and preview.quantity or (preview.counts[stage] or 0)
                 local open, done = amount, false
@@ -420,7 +442,7 @@ function SW:Attach()
                     if entry then open, done = entry.remaining, entry.remaining == 0 end
                 end
                 card.price:SetText(money(preset.price))
-                card.amount:SetText(done and "|cff808080OK|r" or ("%d Stück"):format(open))
+                card.amount:SetText(done and "|cff808080OK|r" or ("%d items"):format(open))
                 card.total:SetText(done and "" or money(open * preset.price))
             end
         end
@@ -438,19 +460,20 @@ function SW:Attach()
         wheelBox:SetChecked(SW:WheelEnabled())
         -- The wheel is only taken over while a sale plan runs (it continues the plan).
         SW:BindWheel(SW:WheelEnabled() and (SW.plan ~= nil or SW.post ~= nil) and self:IsVisible())
-        note:SetText(("Laufzeit %d h · Mausrad %s"):format(SW.durationHours[duration],
-            SW:WheelEnabled() and "setzt den Plan fort" or "aus"))
+        note:SetText(("Duration %d h · Wheel %s"):format(SW.durationHours[duration],
+            SW:WheelEnabled() and "continues the plan" or "off"))
 
         -- Info line: stock, deposit and gross total.
         local infoText = ""
         if SW.selected then
-            infoText = ("Taschen %d · frei %d"):format(SW.selected.quantity, SW.selected.available)
+            infoText = ("Bags %d · free %d"):format(SW.selected.quantity, SW.selected.available)
+            if SW:KeepCount() > 0 then infoText = infoText .. ("  ·  keep %d"):format(SW:KeepCount()) end
             local amount = tonumber(SW.quantity)
             if SW.selected.key and amount and amount >= 1 and C_AuctionHouse.CalculateCommodityDeposit then
                 local ok, deposit = pcall(C_AuctionHouse.CalculateCommodityDeposit, SW.selected.key.itemID, duration, amount)
-                if ok and type(deposit) == "number" then infoText = infoText .. ("  ·  Anzahlung %s"):format(money(deposit)) end
+                if ok and type(deposit) == "number" then infoText = infoText .. ("  ·  Deposit %s"):format(money(deposit)) end
             end
-            if preview and preview.total then infoText = infoText .. ("  ·  Gesamt %s"):format(money(preview.total)) end
+            if preview and preview.total then infoText = infoText .. ("  ·  Total %s"):format(money(preview.total)) end
         end
         info:SetText(infoText)
 
@@ -462,21 +485,21 @@ function SW:Attach()
             if plan and entry.remaining == 0 then doneSteps = doneSteps + 1 end
         end
         local pending = plan and doneSteps < steps or (not plan and preview ~= nil and steps > 0)
-        if plan then sell:SetText(("Weiter · Schritt %d/%d"):format(math.min(steps, doneSteps + 1), steps))
-        else sell:SetText(steps > 1 and ("Verkaufen (%d Schritte)"):format(steps) or "Verkaufen") end
+        if plan then sell:SetText(("Continue · step %d/%d"):format(math.min(steps, doneSteps + 1), steps))
+        else sell:SetText(steps > 1 and ("Sell (%d steps)"):format(steps) or "Sell") end
         sell:SetShown(not confirming)
         sell:SetEnabled(ready and not SW.post and pending and true or false)
         post:SetShown(confirming and true or false)
         post:SetEnabled(ready and confirming and true or false)
         local busy = Addon:BusyMessage(SW)
         local age = SW.snapshotAt and math.max(0, math.floor(GetTime() - SW.snapshotAt))
-        stop:SetText(SW.post and SW.post.state == "unknown" and "Freigeben" or "Stop")
+        stop:SetText(SW.post and SW.post.state == "unknown" and "Release" or "Stop")
         stop:SetEnabled(SW.plan ~= nil or SW.post ~= nil or SW.waitingForBags ~= nil or SW.request ~= nil or SW.queued ~= nil)
         refresh:SetEnabled(editable and SW.selected ~= nil and SW.request == nil and SW.queued == nil)
         local invalid = editable and SW.selected and not SW.request and not SW.queued and problem
-        local summary = age and ("Marktstand: vor %d s"):format(age) or nil
+        local summary = age and ("Market data: %d s ago"):format(age) or nil
         emptyList:SetShown(not SW.listing)
-        status:SetText(busy or invalid or SW.status or summary or "Item auswählen.")
+        status:SetText(busy or invalid or SW.status or summary or "Select an item.")
     end
     local elapsed = 0
     panel:SetScript("OnUpdate", function(_, dt)

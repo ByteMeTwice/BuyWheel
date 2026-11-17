@@ -40,10 +40,31 @@ function SW:WheelEnabled() return self:Settings().wheel ~= false end
 
 function SW:SetWheelEnabled(enabled) self:Settings().wheel = enabled == true end
 
+-- Number of items of every commodity that is never sold (kept as bait); 0 = off.
+function SW:KeepCount()
+    local value = tonumber(self:Settings().keepBait)
+    if not value or value < 0 then return 0 end
+    return math.floor(value)
+end
+
+function SW:SetKeepCount(value)
+    value = tonumber(value)
+    if not self:CanEditSale() or not value or value < 0 or value > 9999999 or value ~= math.floor(value) then return end
+    self:Settings().keepBait = value
+    if self.selected and (tonumber(self.quantity) or 0) > self:Sellable(self.selected) then
+        self.quantity = self:Sellable(self.selected)
+    end
+end
+
+-- What may be sold of an inventory item: the unlocked stock minus the kept bait items.
+function SW:Sellable(item)
+    return math.max(0, (item and item.available or 0) - self:KeepCount())
+end
+
 function SW:LoadSellSettings(item)
     -- A refresh of the same item keeps the quantity that was typed in.
     if self.quantityItem ~= item.id or (tonumber(self.quantity) or 0) < 1 then
-        self.quantity, self.quantityItem = item.available, item.id
+        self.quantity, self.quantityItem = self:Sellable(item), item.id
     end
     self:UpdatePrices()
 end
@@ -97,16 +118,16 @@ function SW:UpdatePrices()
             if cumulative >= need or tier.quantity >= singleNeed then significant = tier.price break end
         end
     end
-    -- Günstigstes: the price of the first meaningful level itself (no undercut),
+    -- Cheapest: the price of the first meaningful level itself (no undercut),
     -- so a thin bait below it is not chased.
     local cheapest = rounded(significant)
-    -- 25 %-Stufe: just below the level where 25 % of the competing supply is
+    -- 25% level: just below the level where 25% of the competing supply is
     -- reached, never below the first meaningful level.
     local quarter = rounded(math.max(percentile(0.25) - tick, significant))
     if quarter < cheapest then quarter = cheapest end
     self.presets = {
-        { title = "Günstigstes", price = cheapest },
-        { title = "25 %-Stufe", price = quarter },
+        { title = "Cheapest", price = cheapest },
+        { title = "25% level", price = quarter },
     }
     for _, preset in ipairs(self.presets) do
         preset.lowest = first
@@ -154,10 +175,13 @@ function SW:UpdatePrices()
 end
 
 function SW:SalePreview()
-    if not self.selected or not self.presets then return nil, "Erst ein Item auswählen und Marktpreise laden." end
+    if not self.selected or not self.presets then return nil, "Select an item and load its market prices first." end
     local quantity = tonumber(self.quantity)
-    if not quantity or quantity ~= math.floor(quantity) or quantity < 1 then return nil, "Eine ganze Menge größer null eingeben." end
-    if quantity > self.selected.available then return nil, "Die Menge übersteigt den verfügbaren Bestand." end
+    if not quantity or quantity ~= math.floor(quantity) or quantity < 1 then return nil, "Enter a whole quantity greater than zero." end
+    if quantity > self:Sellable(self.selected) then
+        return nil, self:KeepCount() > 0 and "The quantity exceeds the stock that is not kept as bait."
+            or "The quantity exceeds the available stock."
+    end
     -- Stage 1 sells the cheap share (rounded), stage 2 the rest.
     local cheap = math.floor(quantity * self:CheapShare() / 100 + 0.5)
     local counts = { cheap, quantity - cheap }
@@ -166,7 +190,7 @@ function SW:SalePreview()
     for i = 1, 2 do
         local price = self.presets[i].price
         if price < 1 or price >= 10000000000000 or price ~= math.floor(price) or price % self:PriceTick() ~= 0 then
-            return nil, "Dieser Stückpreis wird vom AH nicht unterstützt."
+            return nil, "The auction house does not support this unit price."
         end
         if counts[i] > 0 then
             local entry
@@ -242,6 +266,7 @@ function SW:FinishSellPost(success, message)
     if success then
         local entry = job.plan.entries[job.index]
         Addon:NoteOwnPost(job.plan.item.key.itemID, job.price, job.duration)
+        self.lastSoldID = job.plan.item.id
         if Addon.Multi.NoteOwnAction then Addon.Multi:NoteOwnAction(job.plan.item.id) end
         entry.remaining = entry.remaining - job.quantity
         job.plan.posted = (job.plan.posted or 0) + 1
@@ -250,10 +275,10 @@ function SW:FinishSellPost(success, message)
         self:RefreshInventory()
         self:CheckBagUpdate()
         if self.plan == job.plan and self:PlanFinished(job.plan) then self.plan = nil end
-        self.status = message or ("%d Stück für %d h eingestellt (Code %d). Noch kein bestätigter Verkauf."):format(job.quantity, self.durationHours[job.duration] or 0, job.duration or 0)
+        self.status = message or ("%d items posted for %d h (code %d). Not a confirmed sale yet."):format(job.quantity, self.durationHours[job.duration] or 0, job.duration or 0)
     else
         self.plan = nil
-        self.status = message or "Einstellen fehlgeschlagen. Es wird nichts automatisch wiederholt."
+        self.status = message or "Posting failed. Nothing is retried automatically."
     end
     self.inventoryPending = true
 end
@@ -289,16 +314,16 @@ end
 function SW:PostNext(card)
     if not self:CanRead() or InCombatLockdown() or self.request or self.queued then return end
     if self.post and self.post.state ~= "confirm" then return end
-    if not AH.IsThrottledMessageSystemReady() then self.status = "AH beschäftigt. Bitte gleich erneut klicken." return end
+    if not AH.IsThrottledMessageSystemReady() then self.status = "The auction house is busy. Please click again in a moment." return end
     self:RefreshInventory()
     self:CheckBagUpdate()
-    if self.waitingForBags then self.status = "Warte auf aktualisierten Taschenbestand." return end
+    if self.waitingForBags then self.status = "Waiting for the updated bag contents." return end
     local job = self.post
     if not self.plan and not job then
         if not self.snapshotAt or GetTime() - self.snapshotAt > 60 then
             -- Old prices are never posted. Reload them; the next click uses the new ones.
             if self.selected then self:Select(self.selected) end
-            self.status = "Marktpreise waren älter als eine Minute und werden neu geladen. Danach erneut klicken."
+            self.status = "The market prices were older than a minute and are being reloaded. Click again afterwards."
             return
         end
         local plan, message = self:SalePreview()
@@ -314,15 +339,15 @@ function SW:PostNext(card)
         -- for is dropped again so the inputs stay editable.
         if not job then
             if (plan.posted or 0) == 0 or self:PlanFinished(plan) then self.plan = nil end
-            self.status = "Diese Stufe ist bereits eingestellt oder hat 0 Stück."
+            self.status = "This stage is already posted or has 0 items."
         end
         return
     end
-    local available = self.selected and self.selected.id == plan.item.id and self.selected.available or 0
+    local available = self.selected and self.selected.id == plan.item.id and self:Sellable(self.selected) or 0
     local location, count = self:FindPostLocation(plan.item)
     if not location or available < 1 then
         if job then self:CancelPosting() end
-        self.plan, self.status = nil, "Keine passenden ungesperrten Items mehr in den Taschen."
+        self.plan, self.status = nil, "No matching unlocked items left to sell in your bags."
         return
     end
     local requested = job and job.quantity or entry.remaining
@@ -331,7 +356,7 @@ function SW:PostNext(card)
     local deposit = AH.CalculateCommodityDeposit and AH.CalculateCommodityDeposit(plan.item.key.itemID, duration, requested)
     if deposit and deposit > GetMoney() then
         if not job then self.plan = nil end
-        self.status = "Nicht genug Gold für die Anzahlung."
+        self.status = "Not enough gold for the deposit."
         return
     end
     if job then
@@ -347,7 +372,7 @@ function SW:PostNext(card)
             or not same
             or not AH.IsSellItemValid(loc, false) or (AH.GetAvailablePostCount(loc) or 0) < job.quantity then
             self:CancelPosting()
-            self.status = "Bestand wurde verändert. Bitte Menge erneut prüfen."
+            self.status = "The stock changed. Please check the quantity again."
             return
         end
         job.loc = loc
@@ -356,7 +381,7 @@ function SW:PostNext(card)
         local quantity = entry.remaining
         if quantity > available or quantity > count then
             self.plan = nil
-            self.status = ("Bestand verändert oder AH-Mengenlimit: höchstens %d Stück. Menge bitte neu wählen."):format(math.min(available, count))
+            self.status = ("The stock changed or the AH quantity limit applies: at most %d items. Please choose the quantity again."):format(math.min(available, count))
             return
         end
         job = { plan = plan, index = entryIndex, quantity = quantity, price = entry.price,
@@ -376,26 +401,26 @@ function SW:PostNext(card)
     job.timer = C_Timer.NewTimer(12, function()
         if self.post ~= job then return end
         job.state, job.log.outcome, self.plan = "unknown", "unresolved", nil
-        self.status = "Keine Bestätigung. Auktionen prüfen, dann ggf. Freigeben klicken."
+        self.status = "No confirmation. Check your auctions, then click Release if needed."
     end)
     self.sendingPost = true
     local ok, needsConfirm = pcall(confirming and AH.ConfirmPostCommodity or AH.PostCommodity,
         job.loc, job.duration, job.quantity, job.price)
     self.sendingPost = false
     if self.post ~= job then return end
-    if not ok then self:FinishSellPost(false, "WoW hat das Einstellen abgelehnt.")
+    if not ok then self:FinishSellPost(false, "WoW rejected the posting.")
     elseif not confirming and needsConfirm then
         job.state = "confirm"
         job.timer:Cancel()
         job.timer = C_Timer.NewTimer(30, function()
-            if self.post == job then self:CancelPosting() self.status = "Bestätigung abgelaufen." end
+            if self.post == job then self:CancelPosting() self.status = "The confirmation expired." end
         end)
-        self.status = "Das AH verlangt eine Bestätigung. Bestätigen klicken."
+        self.status = "The auction house asks for a confirmation. Click Confirm."
         C_Timer.After(0, function()
             if self.post == job and job.state == "confirm" and StaticPopup_Visible
                 and StaticPopup_Visible("AUCTION_HOUSE_POST_WARNING") then StaticPopup_Hide("AUCTION_HOUSE_POST_WARNING") end
         end)
-    else self.status = "Warte auf Bestätigung des eingestellten Angebots …" end
+    else self.status = "Waiting for the confirmation of the posted listing …" end
 end
 
 function SW:OnSellCreated()
@@ -417,7 +442,7 @@ function SW:InstallPostHooks()
                     self.post.foreign, self.post.state, self.plan = true, "unknown", nil
                     self.post.log.outcome = "interference"
                     if self.post.timer then self.post.timer:Cancel() end
-                    self.status = "Andere Einstellaktion erkannt. Auktionen prüfen und Freigeben klicken."
+                    self.status = "Another posting was detected. Check your auctions and click Release."
                 end
             end)
         end

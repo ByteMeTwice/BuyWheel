@@ -359,7 +359,7 @@ end
 
 test("Two prices: cheapest skips thin levels, the 25 % level follows, recalculation sends no queries", function()
     local f = seller()
-    eq(f.sell.presets[1].price, 200, "Günstigstes is the first meaningful level itself, no undercut")
+    eq(f.sell.presets[1].price, 200, "Cheapest is the first meaningful level itself, no undercut")
     eq(f.sell.presets[2].price, 204, "the 25 % level is reached in the 205 tier, one step below")
     eq(f.sell.presets[1].lowest, 100)
     eq(f.sell.presets[1].ahead, 10)
@@ -407,6 +407,34 @@ test("In a huge market the first real level is the cheapest price", function()
     f:read(2589, { { unitPrice = 100, quantity = 3 }, { unitPrice = 399, quantity = 229 },
         { unitPrice = 450, quantity = 15000 } })
     eq(f.sell.presets[1].price, 399, "3 units are below the 5-unit minimum")
+end)
+
+test("Keep Bait Items: the kept stock is never sold and the selection moves on", function()
+    local f = seller(100)
+    local sell = f.sell
+    eq(sell:KeepCount(), 0, "off by default")
+    eq(sell:Sellable(f:item(2589)), 100)
+    sell:SetKeepCount(30)
+    eq(sell:KeepCount(), 30)
+    eq(sell:Sellable(f:item(2589)), 70)
+    eq(sell.quantity, 70, "a larger quantity is reduced to the sellable stock")
+    sell.quantity = 80
+    local plan, message = sell:SalePreview()
+    eq(plan, nil)
+    assert(message:find("not kept as bait"), message)
+    sell:SetKeepCount("x")
+    eq(sell:KeepCount(), 30, "invalid values are ignored")
+    sell.quantity = 70
+    sell:PostNext()
+    eq(f.calls[2].quantity, 70, "only the sellable stock is posted")
+    f:completePost()
+    f.ready = true
+    f:emit("AUCTION_HOUSE_THROTTLED_SYSTEM_READY")
+    sell:RefreshInventory()
+    eq(f:item(2589).available, 30, "the kept items stay in the bags")
+    eq(sell.selected and sell.selected.key.itemID, 2592, "nothing left to sell: the next item is selected")
+    sell:SetKeepCount(0)
+    eq(sell:Sellable(f:item(2589)), 30, "0 switches the reservation off")
 end)
 
 test("After a sale the next sellable item is selected automatically", function()
@@ -603,12 +631,12 @@ test("The duration checkboxes choose the auction duration code", function()
     eq(f.sell:Duration(), 3, "no change while a post is running")
 end)
 
-test("The Verkaufen button starts the plan; the wheel only continues a running plan", function()
+test("The Sell button starts the plan; the wheel only continues a running plan", function()
     local f = seller(50)
     local panel = f.sell.panel
     panel:RefreshSellWheel()
     assert(panel.sellButton.enabled, "ready to sell")
-    eq(panel.sellButton.text, "Verkaufen (2 Schritte)")
+    eq(panel.sellButton.text, "Sell (2 steps)")
     eq(f.sell:WheelEnabled(), true, "the wheel option is on by default")
     -- Without a plan the wheel does nothing: it never starts a sale.
     f.sell:WheelStep()
@@ -622,7 +650,7 @@ test("The Verkaufen button starts the plan; the wheel only continues a running p
     f:emit("AUCTION_HOUSE_THROTTLED_SYSTEM_READY")
     f:advance(0.2)
     panel:RefreshSellWheel()
-    eq(panel.sellButton.text, "Weiter · Schritt 2/2")
+    eq(panel.sellButton.text, "Continue · step 2/2")
     assert(f.bound and f.bound.MOUSEWHEELUP, "the wheel is bound while the plan runs")
     -- Switched off, the wheel does nothing.
     panel.wheelBox.checked = false

@@ -163,19 +163,19 @@ function BW:NormalInfo(id)
     local now = serverNow()
     local age = now - (learned.timestamp or 0)
     local text
-    if age < 90 then text = "jetzt"
+    if age < 90 then text = "now"
     elseif age < 3600 then text = ("%d min"):format(math.floor(age / 60))
     else text = ("%d h"):format(math.floor(age / 3600)) end
     local depthAge = learned.depthAt and now - learned.depthAt
     -- While watching, a value without a measurement for 10 minutes is old; when idle
     -- nothing is measured, so only values from hours ago count as old.
     local staleAfter = self.running and 600 or 6 * 3600
-    if age > staleAfter then return "|cffff6464alt · " .. text .. "|r", "old", age end
+    if age > staleAfter then return "|cffff6464old · " .. text .. "|r", "old", age end
     if learned.source == "depth" and depthAge and depthAge <= depthWindow then
-        if learned.drift then return "|cffffd100Markt bewegt sich · " .. text .. "|r", "drift", age end
-        return "|cff60eb80Tiefe · " .. text .. "|r", "ok", age
+        if learned.drift then return "|cffffd100Market moving · " .. text .. "|r", "drift", age end
+        return "|cff60eb80Depth · " .. text .. "|r", "ok", age
     end
-    return "|cffffd100ungenau · " .. text .. "|r", "rough", age
+    return "|cffffd100rough · " .. text .. "|r", "rough", age
 end
 
 -- Depth queries per minute (0 = off). Default 1.

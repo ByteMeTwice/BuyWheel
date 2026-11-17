@@ -47,8 +47,8 @@
 **Selling with SellWheel**
 
 1. Open **SW** and click an item in your bags. The market price list loads.
-2. Look at the two highlighted prices, adjust the share if you like (default 50% cheapest, 50% at the 25% level) and press **Verkaufen**. That posts the first stage.
-3. Scroll the mouse wheel to post the rest (the option "Rest per Mausrad" is on by default).
+2. Look at the two highlighted prices, adjust the share if you like (default 50% cheapest, 50% at the 25% level) and press **Sell**. That posts the first stage.
+3. Scroll the mouse wheel to post the rest (the option "Wheel" is on by default).
 
 ## How it works
 

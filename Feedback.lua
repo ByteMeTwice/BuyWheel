@@ -95,13 +95,13 @@ function Addon:ShowPurchasePopup(mode, quantity, name, profit, ratio)
     local popup = flash.popup
     popup.title:SetText(("%d× %s"):format(quantity or 0, name or "?"))
     -- Price paid as a share of the learned normal price (80% = 20% below normal).
-    popup.ratio:SetText(type(ratio) == "number" and ("%.0f%% vom Normalpreis"):format(ratio) or "")
+    popup.ratio:SetText(type(ratio) == "number" and ("%.0f%% of normal price"):format(ratio) or "")
     if type(profit) ~= "number" then
-        popup.profit:SetText("Gewinn: –")
+        popup.profit:SetText("Profit: –")
     elseif profit < 0 then
-        popup.profit:SetText("|cffff6464Gewinn: -" .. popupMoney(profit) .. "|r")
+        popup.profit:SetText("|cffff6464Profit: -" .. popupMoney(profit) .. "|r")
     else
-        popup.profit:SetText("|cff60eb80Gewinn: +" .. popupMoney(profit) .. "|r")
+        popup.profit:SetText("|cff60eb80Profit: +" .. popupMoney(profit) .. "|r")
     end
     popup:Show()
 end
@@ -156,9 +156,9 @@ end
 function Addon:AnnounceBait(mode, target, price, auto)
     if not target or type(price) ~= "number" then return end
     local normal = target.id and self:LearnedNormalPrice(mode, target.id)
-    local percent = normal and (" · %.0f%% vom Normalpreis"):format(price / normal * 100) or ""
+    local percent = normal and (" · %.0f%% of normal"):format(price / normal * 100) or ""
     mode.lastBaitInfo = { name = target.name, price = price, auto = auto == true, at = GetTime() }
     local text = ("|cff66b3ffBuyWheel Bait|r (%s): %s · %s%s"):format(
-        auto and "Auto" or "manuell", target.name or "?", plainMoney(price), percent)
+        auto and "auto" or "manual", target.name or "?", plainMoney(price), percent)
     if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
 end

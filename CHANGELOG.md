@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.8.5 · 2026-11-17
+
+- All SellWheel texts are English again (labels, buttons, tooltips, status messages), as well as the depth status, the purchase pop-up and the bait chat line.
+- SellWheel: new **Keep Bait Items** box (left, below the icon grid). That many items of every commodity are never sold, so they stay available as bait; 0 = off. "Max" and the quantity check use only the stock that is not kept.
+
 ## 0.8.4 · 2026-11-17
 
 - SellWheel: the single-level rule for "Günstigstes" is now 0.5% of the supply (at least 5 units) instead of 2%, so real offers at the bottom of a huge market count (example: 229 units at 3s 99c in a market of 17000). Baits of a few units are still skipped.

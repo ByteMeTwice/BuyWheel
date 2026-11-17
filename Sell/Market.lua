@@ -57,6 +57,20 @@ function SW:RefreshInventory()
     if previousIndex and not self.selected and #self.inventory > 0 and not self.post and not self.plan then
         self:Select(self.inventory[math.min(previousIndex, #self.inventory)])
     end
+    -- Everything that is left of the sold item is kept as bait: move on to the next
+    -- item that has something to sell.
+    if self.selected and self.lastSoldID == self.selected.id and self:Sellable(self.selected) < 1
+        and previousIndex and not self.post and not self.plan then
+        self.lastSoldID = nil
+        local count = #self.inventory
+        for step = 1, count - 1 do
+            local candidate = self.inventory[(previousIndex - 1 + step) % count + 1]
+            if self:Sellable(candidate) >= 1 then
+                self:Select(candidate)
+                break
+            end
+        end
+    end
 end
 
 -- Quantity is aggregated by unit price, including one-unit offers. Own counts
@@ -105,7 +119,7 @@ function SW:Stop()
 end
 
 function SW:Select(item)
-    if self.post or self.plan then self.status = "Erst den laufenden Verkaufsplan beenden oder stoppen." return end
+    if self.post or self.plan then self.status = "Finish or stop the running sale plan first." return end
     if not self.open or not self.panel or not self.panel:IsVisible() then return end
     self.selected = item
     self.tiers, self.snapshotAt, self.totalQuantity, self.totalOwned = nil, nil, nil, nil

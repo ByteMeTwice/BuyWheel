@@ -94,33 +94,33 @@ The layout follows the Auctionator selling tab. On the left an **icon grid** of 
 sellable commodities in your bags (with counts; click an item). On the right: the
 item icon and name, **Menge** with **Alle**, the **Laufzeit** (2 / 8 / 24 hours),
 the two price strips, the info line (stock, deposit, gross total), the
-**Verkaufen** button, and below it a **table of the market offers** (Preis,
-Verfügbar, cumulative share of the competition, "Dein" = your own listings in
-that price level, and the Verkauf column). The table scrolls; it starts at the
-cheapest offer. Your own listings never count as competition. When an item is sold out, the next sellable item of the grid is selected automatically and its prices are loaded.
+**Sell** button, and below it a **table of the market offers** (Price,
+Available, cumulative share of the competition, "Own" = your own listings in
+that price level, and the Sale column). The table scrolls; it starts at the
+cheapest offer. Your own listings never count as competition. **Keep Bait Items** (box below the icon grid) reserves that many items of every commodity: they are never sold ("Max" and the quantity limit use the rest), so you can keep using them as bait. 0 switches it off. When only the kept items are left of a sold item, the next item with something to sell is selected. When an item is sold out, the next sellable item of the grid is selected automatically and its prices are loaded.
 
 Two prices are used, as colored strips and highlighted at their rows in the table:
 
-- **Günstigstes** (green): the price of the first *meaningful* level itself, not
+- **Cheapest** (green): the price of the first *meaningful* level itself, not
   undercut by a copper. A level counts once the supply up to it reaches about 5%
   of the competing supply (at least 5 units), or when it holds 0.5% of the supply
   on its own (at least 5 units), so a thin bait level at the very bottom is
   skipped but a real level is not, even in a market of many thousand units.
-- **25 %-Stufe** (blue): just below the price level where about 25% of the
+- **25% level** (blue): just below the price level where about 25% of the
   competing supply is reached, never below the first meaningful level.
 
 A planned price that has no level of its own appears as an extra row in the list.
 
-**Aufteilung:** the box on the Günstigstes card is the share (0-100%, default 50)
-of the quantity sold at the cheapest price; the rest goes to the 25 %-Stufe (shown
+**Split:** the box on the Cheapest card is the share (0-100%, default 50)
+of the quantity sold at the cheapest price; the rest goes to the 25% level (shown
 on its card). The whole quantity is sold. Rounding keeps the total, and if both
 prices are the same the sale is one step. The cards show quantity, price and
 total; the status line shows the gross value before AH fees. Suggestions do not
 guarantee sales or profit.
 
-**Verkaufen** posts the first stage with one click (WoW needs a real click for
-each post). The button shows the number of steps and, while a plan runs, "Weiter ·
-Schritt 2/2". **Rest per Mausrad** (checkbox, on by default): after the first
+**Sell** posts the first stage with one click (WoW needs a real click for
+each post). The button shows the number of steps and, while a plan runs, "Continue ·
+step 2/2". **Wheel** (checkbox, on by default): after the first
 click, every mouse wheel step posts the next stage (or confirms), so the rest is
 a quick scroll. The wheel only continues a running plan: without one it does
 nothing and is not taken over. It only works while the SellWheel tab is open and
@@ -463,7 +463,7 @@ Posts are logged in `postDiagnostics` with `autoBait` and `autoBaitPercent`.
 Next to the current price, a large percentage shows that price as a share of the
 item's learned normal price (80% means 20% below normal). It is green while the
 price is within the max buy price and red above it. The green purchase pop-up
-shows the average price paid the same way ("80% vom Normalpreis").
+shows the average price paid the same way ("80% of normal price").
 
 The right column follows the order of use: learning (Max buy %, Limit live, Start
 learning), the shared budget in whole gold, the options (Leave
@@ -539,7 +539,7 @@ Depth samples come from:
   latency.
 - **Free samples:** listings that are loaded anyway (before a purchase) and
   SellWheel's price levels, at most one per item and minute.
-- **Depth queries per minute** (field "Tiefe/min" next to Leave Bait, default 1,
+- **Depth queries per minute** (field "Depth/min" next to Leave Bait, default 1,
   0 = off): while watching, the watched commodity with the oldest depth sample
   gets a detail query, one every 60/rate seconds. Never while a purchase, bait,
   post or offer is pending. One query costs about one scan cycle.
@@ -557,8 +557,8 @@ for the selected item's learned normal price): **grey/white** = fine (depth base
 recent), **yellow** = be careful (only the minimum price was measured, or the live
 minimum left the allowed range and waits for the next depth sample), **red** = old
 (no measurement for 10 minutes while watching, or for 6 hours when idle). The
-tooltip of a favorite spells it out ("Tiefe · 3 min", "ungenau · 12 min",
-"Markt bewegt sich", "alt · 25 min").
+tooltip of a favorite spells it out ("Depth · 3 min", "rough · 12 min",
+"Market moving", "old · 25 min").
 
 ## Live profit, bait announcements and bait timer
 
@@ -567,7 +567,7 @@ tooltip of a favorite spells it out ("Tiefe · 3 min", "ungenau · 12 min",
   seconds). Gold per hour is shown with two decimals.
 - **Bait announcement:** every successful bait (Auto-Bait, the Bait button, Bait
   now) writes one chat line, for example `BuyWheel Bait (Auto): Silverleaf ·
-  42c · 50% vom Normalpreis`, so you can compare baits with others. The panel
+  42c · 50% of normal price`, so you can compare baits with others. The panel
   shows the latest one on the right of the detail line ("Bait <item> <price>").
 - **Bait timer:** the Auto-Bait status at the right edge counts down the seconds
   until the next bait is allowed (settle time plus the rate interval): "Bait
