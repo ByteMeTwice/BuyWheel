@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.11 · 2026-11-17
+
+- BWM: ROB now shows the **sum of items** bought at the bait price or below after your baits, against the number of baits (`ROB 23 items · 13 baits`), instead of a share of baits with any purchase. The tooltip adds the baits that led to purchases and the average per finished bait.
+
 ## 0.9.10 · 2026-11-17
 
 - SellWheel: no more "You cannot sell a soulbound item" messages in the chat. The bag scan asked the game whether each item can be sold and let it print an error for soulbound commodities (for example Marks of Honor). Such items were never offered; now the scan is silent.

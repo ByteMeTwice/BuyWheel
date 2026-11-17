@@ -524,10 +524,11 @@ local function buildPanel(parent)
         local posted, hit, open, units, rate = Addon:RobSummary(BW)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:AddLine("Return on Bait (ROB)")
-        GameTooltip:AddLine("A bait counts as successful when you bought items of the same commodity at the bait price or below after it was posted (others matched or undercut it). Its window ends with the next bait of that item or after 10 minutes. Baits still in their window are not counted yet.", 1, 1, 1, true)
+        GameTooltip:AddLine("Counts the items of the same commodity that you bought at the bait price or below after a bait was posted (others matched or undercut it), against the number of baits. A bait's window ends with the next bait of that item or after 10 minutes.", 1, 1, 1, true)
         if posted > 0 then
-            GameTooltip:AddLine(("%d baits posted · %d successful · %d open"):format(posted, hit, open), 1, 1, 1)
-            if hit > 0 then GameTooltip:AddLine(("%d items bought after baits · avg %.1f per successful bait"):format(units, units / hit), 1, 1, 1) end
+            GameTooltip:AddLine(("%d items bought at the bait price or below after %d baits"):format(units, posted), 1, 1, 1)
+            GameTooltip:AddLine(("%d baits led to purchases · %d still open"):format(hit, open), 1, 1, 1)
+            if rate then GameTooltip:AddLine(("avg %.1f items per finished bait"):format(units / (posted - open)), 1, 1, 1) end
             local list = {}
             for _, item in pairs(BW.rob.items) do list[#list + 1] = item end
             table.sort(list, function(a, b) return a.posted > b.posted end)
@@ -775,9 +776,8 @@ local function buildPanel(parent)
         liveLimit:SetEnabled(BW:CanChangeFastQuote())
         autoBait:SetChecked(BW.db.autoBait == true)
         do
-            local posted, hit, open, _, rate = Addon:RobSummary(BW)
-            robText:SetText(posted == 0 and "ROB –" or rate
-                and ("ROB %d%% · %d/%d"):format(math.floor(rate * 100 + 0.5), hit, posted - open) or ("ROB · %d open"):format(open))
+            local posted, _, _, units = Addon:RobSummary(BW)
+            robText:SetText(posted == 0 and "ROB –" or ("ROB %d items · %d bait%s"):format(units, posted, posted == 1 and "" or "s"))
         end
         if not baitLasts:HasFocus() then baitLasts:SetText(tostring(BW:BaitLastsHours())) end
         if not baitPercent:HasFocus() then baitPercent:SetText(tostring(BW:AutoBaitPercent())) end
