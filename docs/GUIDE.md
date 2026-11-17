@@ -50,7 +50,7 @@ Each purchase counts "normal price × quantity − what you paid". A bait remove
 ## Selling
 
 - **SellWheel** shows the market as a price list and proposes two prices: **Cheapest** (the first real level, without undercutting) and the **25% level** (just below the price where 25% of the supply is reached). Thin bait levels at the bottom are skipped.
-- The quantity is split between them (default 50/50). **Sell** posts the first stage, the mouse wheel posts the rest.
+- The quantity is split between them (default 50/50). **Sell** posts the first stage; press it again for the second.
 - **Keep Bait Items** keeps that many items of every commodity out of the sale, so you can keep using them as bait.
 
 ## Tips for the first run

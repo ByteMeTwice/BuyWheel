@@ -120,12 +120,8 @@ guarantee sales or profit.
 
 **Sell** posts the first stage with one click (WoW needs a real click for
 each post). The button shows the number of steps and, while a plan runs, "Continue ·
-step 2/2". **Wheel** (checkbox, on by default): after the first
-click, every mouse wheel step posts the next stage (or confirms), so the rest is
-a quick scroll. The wheel only continues a running plan: without one it does
-nothing and is not taken over. It only works while the SellWheel tab is open and
-out of combat; chat scrolling is paused while a plan runs. A step never posts
-while a post is still running.
+step 2/2": every stage is one click. There is no mouse wheel sale. **Stop** only
+shows while a plan runs or a result is unclear.
 
 Three checkboxes (2h, 8h, 24h) set the auction duration (default 2h; saved). The
 quantity box, the share and the duration can only be changed while no sale plan
@@ -151,7 +147,7 @@ automatically: inspect the native Auctions list before clicking **Freigeben**
 to clear an unresolved result. Clearing does not post or cancel any auction.
 A late confirmation can still resolve a pending result.
 
-The share, duration and wheel option are saved; posting diagnostics retain
+The share, duration and kept items are saved; posting diagnostics retain
 submitted quantities, prices, duration codes and outcomes. Sale proceeds and
 persistent purchase-cost accounting are not yet tracked.
 
@@ -161,7 +157,7 @@ All modes save to the character's `SavedVariables/BuyWheel.lua`:
 
 - `BuyWheelDB.single`: existing single settings, purchases and diagnostics.
 - `BuyWheelDB.multi`: existing multi settings, watch list, learned prices and logs.
-- `BuyWheelDB.sell`: SellWheel share, duration, wheel option and posting logs.
+- `BuyWheelDB.sell`: SellWheel share, duration, kept bait items and posting logs.
 
 The original single database is wrapped without discarding its fields. A
 one-time import of an older multi database (`LegacyMulti.lua`) existed for the

@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.8 · 2026-11-17
+
+- SellWheel: the mouse wheel sale is gone (checkbox "Wheel" and the wheel binding). Every stage is one click on **Sell**. The **Stop** button only shows while a sale plan runs or a result is unclear.
+
 ## 0.9.7 · 2026-11-17
 
 - More conservative normal price (rule: rather no profit on a thin margin than a loss): the depth is measured at the first **5%** of the supply instead of 10% (still at least 20 units), and the normal price may lie at most **3%** above the median of the lowest prices instead of 5%. Example: Wild Steelbloom was valued at 97.46c with 480 units between 92c and 96c; it now comes to about 94c. After updating, press **Reset learned** and learn again so that the new rule is the only data in use.

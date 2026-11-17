@@ -35,11 +35,6 @@ function SW:SetCheapShare(value)
     self:Settings().cheapShare = value
 end
 
--- The wheel continues a running sale plan (on by default).
-function SW:WheelEnabled() return self:Settings().wheel ~= false end
-
-function SW:SetWheelEnabled(enabled) self:Settings().wheel = enabled == true end
-
 -- Number of items of every commodity that is never sold (kept as bait); 0 = off.
 function SW:KeepCount()
     local value = tonumber(self:Settings().keepBait)
@@ -458,15 +453,4 @@ function SW:InstallPostHooks()
             end)
         end
     end
-end
-
--- One mouse wheel step (hardware event) continues a RUNNING plan: it posts the next
--- open stage or confirms the pending post. It never starts a sale. On by default.
-function SW:WheelStep()
-    if not self:WheelEnabled() then return end
-    if self.post then
-        if self.post.state == "confirm" then self:PostNext() end
-        return
-    end
-    if self.plan then self:PostNext() end
 end

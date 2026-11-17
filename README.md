@@ -21,7 +21,7 @@
 |---|---|
 | **BWS** | one item: max price, budget, bait, scroll to buy |
 | **BWM** | many favorites: learned prices, limits, Auto-Bait, live profit |
-| **SW** | selling: market price list, two prices, mouse-wheel sale |
+| **SW** | selling: market price list, two prices, one click per stage |
 
 ## Install
 
@@ -40,7 +40,7 @@ To **update**, run the same file again. Your saved data is not touched.
 1. Mark your commodities as **favorites** in the auction house.
 2. **BWM:** set *Max buy %* (e.g. 70), press **Start Learning Prices**, wait until it ends.
 3. Check the items to watch, set the *Shared budget*, press **Start watching**, **scroll**.
-4. **SW:** click an item in your bags, press **Sell**, scroll for the rest.
+4. **SW:** click an item in your bags, press **Sell** (once per stage).
 
 ## More
 

@@ -7,42 +7,6 @@ local PER_PAGE = COLS * GRID_ROWS
 local ROW_HEIGHT = 18
 local X = 300 -- left edge of the right side
 
-local wheel = CreateFrame("Button", "SellWheelMouseButton", UIParent)
-wheel:RegisterForClicks("AnyDown")
-wheel:SetScript("OnClick", function() SW:WheelStep() end)
-
-local bindings = CreateFrame("Frame", nil, UIParent, "SecureHandlerStateTemplate")
-bindings:SetAttribute("_onstate-combat", [[ if newstate == "combat" then self:ClearBindings() end ]])
-RegisterStateDriver(bindings, "combat", "[combat] combat; peace")
-
-local muted = {}
-local function muteScroll(frame)
-    if frame and frame.IsMouseWheelEnabled and frame:IsMouseWheelEnabled() then
-        frame:EnableMouseWheel(false)
-        muted[#muted + 1] = frame
-    end
-end
-
--- The mouse wheel continues a running sale plan; chat scrolling is paused meanwhile,
--- as in the buy modes. Bound only while a plan runs (see RefreshSellWheel).
-function SW:BindWheel(enable)
-    enable = enable and true or false
-    if self.wheelBound == enable then return end
-    if InCombatLockdown() then return end
-    self.wheelBound = enable
-    for _, frame in ipairs(muted) do frame:EnableMouseWheel(true) end
-    wipe(muted)
-    ClearOverrideBindings(bindings)
-    if not enable then return end
-    SetOverrideBindingClick(bindings, true, "MOUSEWHEELUP", wheel:GetName())
-    SetOverrideBindingClick(bindings, true, "MOUSEWHEELDOWN", wheel:GetName())
-    for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        local chat = _G["ChatFrame" .. i]
-        muteScroll(chat)
-        if chat then muteScroll(chat.ScrollBar) end
-    end
-end
-
 local function money(value)
     if value >= 10000 then return ("%dg %02ds %02dc"):format(math.floor(value / 10000), math.floor(value / 100) % 100, value % 100) end
     if value >= 100 then return ("%ds %02dc"):format(math.floor(value / 100), value % 100) end
@@ -250,7 +214,7 @@ function SW:Attach()
     label(panel, "%", "GameFontHighlight", X + 78 + 346, -96, 14)
     local info = label(panel, "", "GameFontNormalSmall", X + 78, -120, 362)
 
-    -- ---- Sell button (the first stage); the wheel does the rest ----
+    -- ---- Sell button: one click per stage ----
     local sell = button(panel, "Sell", 200, X + 78, -136, function()
         quantity:ClearFocus()
         share:ClearFocus()
@@ -278,21 +242,6 @@ function SW:Attach()
         GameTooltip:Show()
     end)
     stop:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    local wheelBox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    wheelBox:SetPoint("TOPLEFT", X + 354, -138)
-    wheelBox:SetSize(24, 24)
-    label(panel, "Wheel", "GameFontHighlightSmall", X + 380, -145, 60)
-    wheelBox:SetScript("OnClick", function(self)
-        SW:SetWheelEnabled(self:GetChecked() == true)
-        panel:RefreshSellWheel()
-    end)
-    wheelBox:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Rest by mouse wheel")
-        GameTooltip:AddLine("On: the first click on Sell posts the first stage. After that every mouse wheel step does the next step (post or confirm) while the plan runs. Without a running plan the wheel does nothing.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    wheelBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     local status = label(panel, "", "GameFontNormalSmall", X, -170, 440)
     status:SetWordWrap(true)
@@ -340,7 +289,7 @@ function SW:Attach()
     local note = label(panel, "", "GameFontDisableSmall", 9, -378, 280)
     panel.durationBoxes = durationBoxes
     panel.quantityBox, panel.shareBox = quantity, share
-    panel.sellButton, panel.postButton, panel.stopButton, panel.wheelBox = sell, post, stop, wheelBox
+    panel.sellButton, panel.postButton, panel.stopButton = sell, post, stop
     panel.listRows, panel.stageCards, panel.inventoryCells = listRows, stageCards, cells
 
     -- Fills the table from the listing; only when the data changed.
@@ -461,11 +410,7 @@ function SW:Attach()
             box:SetChecked(duration == index)
             box:SetEnabled(editable)
         end
-        wheelBox:SetChecked(SW:WheelEnabled())
-        -- The wheel is only taken over while a sale plan runs (it continues the plan).
-        SW:BindWheel(SW:WheelEnabled() and (SW.plan ~= nil or SW.post ~= nil) and self:IsVisible())
-        note:SetText(("Duration %d h · Wheel %s"):format(SW.durationHours[duration],
-            SW:WheelEnabled() and "continues the plan" or "off"))
+        note:SetText(("Duration %d h"):format(SW.durationHours[duration]))
 
         -- Info line: stock, deposit and gross total.
         local infoText = ""
@@ -498,7 +443,8 @@ function SW:Attach()
         local busy = Addon:BusyMessage(SW)
         local age = SW.snapshotAt and math.max(0, math.floor(GetTime() - SW.snapshotAt))
         stop:SetText(SW.post and SW.post.state == "unknown" and "Release" or "Stop")
-        stop:SetEnabled(SW.plan ~= nil or SW.post ~= nil or SW.waitingForBags ~= nil or SW.request ~= nil or SW.queued ~= nil)
+        -- Stop is only there while a sale plan runs or a result is unclear.
+        stop:SetShown(SW.plan ~= nil or SW.post ~= nil or SW.waitingForBags ~= nil)
         refresh:SetEnabled(editable and SW.selected ~= nil and SW.request == nil and SW.queued == nil)
         local invalid = editable and SW.selected and not SW.request and not SW.queued and problem
         local summary = age and ("Market data: %d s ago"):format(age) or nil
@@ -517,12 +463,11 @@ function SW:Attach()
         SW.inventoryPending = true
         panel:RefreshSellWheel()
     end)
-    panel:SetScript("OnHide", function() SW:BindWheel(false) SW:Stop() GameTooltip:Hide() end)
+    panel:SetScript("OnHide", function() SW:Stop() GameTooltip:Hide() end)
     Addon:RegisterModeTabs()
 end
 
 function SW:HidePanel()
-    self:BindWheel(false)
     if self.panel then self.panel:Hide() end
     if self.tab then PanelTemplates_DeselectTab(self.tab) end
 end

@@ -69,8 +69,7 @@ What each control does, tab by tab. The three tabs sit next to the native auctio
 - **25% level (blue):** just below the price where 25% of the competing supply is reached.
 - **Share box:** the percent sold at the cheapest price; the rest goes to the 25% level (default 50/50).
 - **Info line:** bags, free, kept, **Deposit** and **Total** (gross, before fees).
-- **Sell:** posts the first stage. While a plan runs it reads **Continue · step 2/2**; **Confirm** appears when the AH asks for a confirmation. **Stop** abandons the rest of the plan; **Release** clears an unclear result (check your auctions first).
-- **Wheel (checkbox, on by default):** after the first click, every mouse-wheel step posts the next stage or confirms it. It never starts a sale and is only taken over while a plan runs.
+- **Sell:** posts the first stage. While a plan runs it reads **Continue · step 2/2**; **Confirm** appears when the AH asks for a confirmation. **Stop** (only shown while a plan runs) abandons the rest of the plan; **Release** clears an unclear result (check your auctions first). Every stage is one click.
 - **Offer table:** Price, Available, **Cumulative** share of the competition, **Own** (Yes = your own listing, BW = a probable BuyWheel bait) and **Sale** (what would be sold at that level). Green and blue rows are your two prices, **violet** rows are probable BuyWheel baits. The table scrolls and starts at the cheapest offer.
 - **Refresh:** reloads the market prices. Prices older than a minute are reloaded automatically before a sale.
 - **After a sale:** the next sellable item is selected automatically and its prices are loaded.
