@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.9 · 2026-11-17
+
+- BuyWheelS: more compact and better grouped. Repeat bait sits on the title row of "Bait sell price". Leave Bait / Buy Bait are one row above GO / STOP, "Spend up to (total)" directly below the buttons, and the big gap is gone: status, spending and statistics moved up.
+
 ## 0.7.8 · 2026-11-17
 
 - BuyWheelS: "Spend up to" moved to the bottom, between the option checkboxes and the spending statistics (it is a setting you make beforehand). Repeat bait is back above GO / STOP.
