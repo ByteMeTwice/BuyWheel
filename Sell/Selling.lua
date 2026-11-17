@@ -58,6 +58,9 @@ end
 -- supply is reached (share of the total, at least that many units). Thin leading
 -- levels are usually bait and are skipped.
 local significantShare, significantUnits = 0.05, 5
+-- ...or when a single level holds this share of the supply on its own (a large
+-- real level below the 5% point is not bait).
+local singleShare = 0.02
 
 function SW:UpdatePrices()
     self.presets, self.listing = nil, nil
@@ -86,10 +89,12 @@ function SW:UpdatePrices()
     -- First level that holds a meaningful part of the supply.
     local significant = first
     if total > 0 then
-        local need, cumulative = math.min(total, math.max(significantUnits, math.ceil(total * significantShare))), 0
+        local need = math.min(total, math.max(significantUnits, math.ceil(total * significantShare)))
+        local singleNeed = math.min(total, math.max(significantUnits, math.ceil(total * singleShare)))
+        local cumulative = 0
         for _, tier in ipairs(others) do
             cumulative = cumulative + tier.quantity
-            if cumulative >= need then significant = tier.price break end
+            if cumulative >= need or tier.quantity >= singleNeed then significant = tier.price break end
         end
     end
     -- Günstigstes: the price of the first meaningful level itself (no undercut),

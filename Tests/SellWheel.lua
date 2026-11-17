@@ -382,6 +382,18 @@ test("A thin bait level is not the cheapest price", function()
     assert(f.sell.presets[2].price >= f.sell.presets[1].price)
 end)
 
+test("A large real level below the 5% point still counts as the cheapest price", function()
+    local f = fixture()
+    f.bags[0][1].stackCount = 100
+    f:open()
+    -- Rugged Leather: 1 unit of bait, then 188 real units; the 5% point lies further up.
+    f:read(2589, { { unitPrice = 1900, quantity = 1 }, { unitPrice = 1960, quantity = 188 },
+        { unitPrice = 1966, quantity = 8 }, { unitPrice = 1985, quantity = 3 }, { unitPrice = 1986, quantity = 9 },
+        { unitPrice = 2085, quantity = 29 }, { unitPrice = 2086, quantity = 585 },
+        { unitPrice = 2500, quantity = 5000 } })
+    eq(f.sell.presets[1].price, 1960, "188 units are 3% of the supply: a real level, the 1-unit bait is skipped")
+end)
+
 test("The list marks the rows our two prices land on, including planned prices without a level", function()
     local f = seller(50)
     local found = {}
