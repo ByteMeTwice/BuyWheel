@@ -2,7 +2,7 @@
 
 **Auction house tools for WoW Classic *Forever*:** buy cheap listings with the mouse wheel, let the addon learn what an item is really worth, and sell with a clear price list.
 
-[Install](#install) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Full reference](docs/REFERENCE.md)
+[Install](#install) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Full reference](docs/REFERENCE.md) · [Changelog](CHANGELOG.md)
 
 ---
 
