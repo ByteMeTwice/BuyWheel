@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.8.1 · 2026-11-17
+
+- SellWheel rebuilt after the Auctionator selling tab: icon grid of the bags on the left; item icon and name, quantity with "Alle", duration, deposit and total on the right; the two price strips and the **Verkaufen** button; and a scrolling table of the market offers (Preis, Verfügbar, cumulative share, Dein, Verkauf) with your two prices highlighted.
+
 ## 0.8.0 · 2026-11-17
 
 **SellWheel in the style of a selling tab**

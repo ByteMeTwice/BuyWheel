@@ -90,15 +90,16 @@ or entering combat applies no limits. There is no manual bait button in this tab
 
 ## SellWheel · price list and two-stage sale
 
-Select a commodity from the left bag list. The layout follows a classic selling
-tab: item icon and name on top, then quantity and duration, the two price cards,
-the **Verkaufen** button, and below it the offers of the market, cheapest first,
-with every price level, its quantity and the cumulative share of the competing
-supply. Your own listings are shown in gold ("dein N") and never count as
-competition. Long markets are shortened to the cheapest levels plus the rows
-around your two prices.
+The layout follows the Auctionator selling tab. On the left an **icon grid** of the
+sellable commodities in your bags (with counts; click an item). On the right: the
+item icon and name, **Menge** with **Alle**, the **Laufzeit** (2 / 8 / 24 hours),
+the two price strips, the info line (stock, deposit, gross total), the
+**Verkaufen** button, and below it a **table of the market offers** (Preis,
+Verfügbar, cumulative share of the competition, "Dein" = your own listings in
+that price level, and the Verkauf column). The table scrolls; it starts at the
+cheapest offer. Your own listings never count as competition.
 
-Two prices are used, as colored cards and highlighted at their rows in the list:
+Two prices are used, as colored strips and highlighted at their rows in the table:
 
 - **Günstigstes** (green): the price of the first *meaningful* level itself, not
   undercut by a copper. A level counts once it holds about 5% of the competing

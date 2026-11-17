@@ -1,6 +1,11 @@
 local _, Addon = ...
 local SW = Addon.Sell
-local ROWS = 11
+-- Left: icon grid of the sellable commodities in the bags. Right: a selling tab with
+-- the item on top, the two prices, the sell button and the list of market offers.
+local COLS, GRID_ROWS, CELL = 5, 6, 46
+local PER_PAGE = COLS * GRID_ROWS
+local ROW_HEIGHT = 18
+local X = 300 -- left edge of the right side
 
 local wheel = CreateFrame("Button", "SellWheelMouseButton", UIParent)
 wheel:RegisterForClicks("AnyDown")
@@ -18,8 +23,8 @@ local function muteScroll(frame)
     end
 end
 
--- The mouse wheel posts the next stage only while the wheel option is on and the
--- SellWheel panel is open; chat scrolling is paused meanwhile, as in the buy modes.
+-- The mouse wheel continues a running sale plan; chat scrolling is paused meanwhile,
+-- as in the buy modes. Bound only while a plan runs (see RefreshSellWheel).
 function SW:BindWheel(enable)
     enable = enable and true or false
     if self.wheelBound == enable then return end
@@ -63,6 +68,17 @@ local function button(parent, value, width, x, y, fn)
     return frame
 end
 
+local function itemIcon(id)
+    if C_Item and C_Item.GetItemIconByID then return C_Item.GetItemIconByID(id) end
+    if GetItemIcon then return GetItemIcon(id) end
+end
+
+local GREEN, BLUE = "|cff60eb80", "|cff66b3ff"
+local function stageColor(stage)
+    if stage == 2 then return BLUE end
+    return GREEN
+end
+
 function SW:Attach()
     local parent = AuctionHouseFrame
     if self.panel or not parent or not parent.Tabs or #parent.Tabs == 0 then return end
@@ -73,50 +89,61 @@ function SW:Attach()
     panel:SetFrameLevel(parent:GetFrameLevel() + 8)
     self.panel = panel
     self.inventoryPage, self.chartPage = 1, 1
-    label(panel, "SellWheel · bag inventory", "GameFontNormalLarge", 9, 0, 280)
-    label(panel, "Commodities · unlocked / total", nil, 9, -23, 280)
     local divider = panel:CreateTexture(nil, "ARTWORK")
     divider:SetPoint("TOPLEFT", 285, -4)
     divider:SetPoint("BOTTOMLEFT", 285, 11)
     divider:SetWidth(1)
     divider:SetColorTexture(0.65, 0.56, 0.38, 0.31)
-    local rows = {}
-    for i = 1, ROWS do
-        local row = CreateFrame("Button", nil, panel)
-        row:SetPoint("TOPLEFT", 8, -43 - (i - 1) * 26)
-        row:SetSize(258, 24)
-        row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-        row.name = label(row, "", "GameFontHighlightSmall", 3, -3, 172)
-        row.quantity = label(row, "", nil, 178, -3, 78)
-        row.quantity:SetJustifyH("RIGHT")
-        row.selected = row:CreateTexture(nil, "BACKGROUND")
-        row.selected:SetAllPoints(row)
-        row.selected:SetColorTexture(0.65, 0.56, 0.38, 0.25)
-        row:SetScript("OnClick", function(self)
-            SW:Select(self.item)
-            panel:RefreshSellWheel()
+
+    -- ---- Left: icon grid of the bags (like a selling tab's item list) ----
+    label(panel, "Commodities", "GameFontNormal", 12, -4, 200)
+    local cells = {}
+    for i = 1, PER_PAGE do
+        local col, rowIndex = (i - 1) % COLS, math.floor((i - 1) / COLS)
+        local cell = CreateFrame("Button", nil, panel)
+        cell:SetPoint("TOPLEFT", 14 + col * CELL, -30 - rowIndex * CELL)
+        cell:SetSize(42, 42)
+        cell.border = cell:CreateTexture(nil, "BACKGROUND")
+        cell.border:SetPoint("TOPLEFT", -2, 2)
+        cell.border:SetPoint("BOTTOMRIGHT", 2, -2)
+        cell.border:SetColorTexture(0.25, 0.22, 0.18, 1)
+        cell.icon = cell:CreateTexture(nil, "ARTWORK")
+        cell.icon:SetAllPoints(cell)
+        cell.count = cell:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+        cell.count:SetPoint("BOTTOMRIGHT", -3, 3)
+        cell:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+        cell:SetScript("OnClick", function(self)
+            if self.item then
+                SW:Select(self.item)
+                panel:RefreshSellWheel()
+            end
         end)
-        row:SetScript("OnEnter", function(self)
+        cell:SetScript("OnEnter", function(self)
+            if not self.item then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(self.item.name)
-            GameTooltip:AddLine(("In bags: %d · unlocked: %d"):format(self.item.quantity, self.item.available), 1, 1, 1)
+            GameTooltip:AddLine(("In Taschen: %d · frei: %d"):format(self.item.quantity, self.item.available), 1, 1, 1)
             GameTooltip:AddLine("Klicken lädt die Marktpreise. Eingestellt wird erst mit Verkaufen.", 1, 1, 1, true)
             GameTooltip:Show()
         end)
-        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        rows[i] = row
+        cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        cells[i] = cell
     end
-    local empty = label(panel, "No sellable commodities in your bags.", nil, 9, -49, 250)
+    local empty = label(panel, "Keine verkaufbaren Rohstoffe in den Taschen.", nil, 14, -34, 250)
     local invPrev = button(panel, "‹", 34, 9, -343, function() SW.inventoryPage = SW.inventoryPage - 1 end)
     local invNext = button(panel, "›", 34, 47, -343, function() SW.inventoryPage = SW.inventoryPage + 1 end)
     local invPage = label(panel, "", nil, 92, -351, 120)
-    -- Header: icon, item name, stock and refresh (like a selling tab: item on top).
+
+    -- ---- Right top: item, quantity, duration ----
+    local title = label(panel, "Links ein Item auswählen.", "GameFontHighlightLarge", X, -2, 340)
+    local iconBorder = panel:CreateTexture(nil, "BACKGROUND")
+    iconBorder:SetPoint("TOPLEFT", X - 2, -24)
+    iconBorder:SetSize(68, 68)
+    iconBorder:SetColorTexture(0.3, 0.26, 0.2, 1)
     local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT", 311, -2)
-    icon:SetSize(36, 36)
+    icon:SetPoint("TOPLEFT", X, -26)
+    icon:SetSize(64, 64)
     icon:Hide()
-    local title = label(panel, "Links ein Item auswählen.", "GameFontHighlightLarge", 354, -4, 300)
-    local stock = label(panel, "", nil, 354, -25, 300)
     local function edit(width, x, y)
         local box = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
         box:SetPoint("TOPLEFT", x, y)
@@ -128,29 +155,36 @@ function SW:Attach()
         box:SetScript("OnEscapePressed", box.ClearFocus)
         return box
     end
-    local refresh = button(panel, "Aktualisieren", 108, 0, -2, function()
+    local refresh = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    refresh:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -2)
+    refresh:SetSize(100, 24)
+    refresh:SetText("Aktualisieren")
+    refresh:SetScript("OnClick", function()
         if SW.selected and SW:CanEditSale() then SW:Select(SW.selected) end
     end)
-    refresh:ClearAllPoints()
-    refresh:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -2)
+    refresh:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:AddLine("Marktpreise neu laden")
+        GameTooltip:Show()
+    end)
+    refresh:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Quantity and auction duration.
-    label(panel, "Menge", "GameFontNormalSmall", 311, -58, 48)
-    local quantity = edit(64, 355, -50)
+    label(panel, "Menge", "GameFontNormalSmall", X + 78, -36, 48)
+    local quantity = edit(64, X + 126, -30)
     quantity:SetScript("OnTextChanged", function(self, userInput)
         if userInput and SW:CanEditSale() then SW.quantity = self:GetText() end
     end)
-    local all = button(panel, "Alle", 55, 427, -50, function()
+    local all = button(panel, "Alle", 50, X + 196, -30, function()
         if SW:CanEditSale() and SW.selected then SW.quantity = SW.selected.available end
         panel:RefreshSellWheel()
     end)
-    label(panel, "Laufzeit", "GameFontNormalSmall", 520, -58, 50)
+    label(panel, "Laufzeit", "GameFontNormalSmall", X + 266, -36, 46)
     local durationBoxes = {}
     for index, hours in ipairs(SW.durationHours) do
         local box = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-        box:SetPoint("TOPLEFT", 574 + (index - 1) * 52, -51)
+        box:SetPoint("TOPLEFT", X + 318 + (index - 1) * 46, -33)
         box:SetSize(22, 22)
-        local text = label(panel, hours .. "h", "GameFontHighlightSmall", 0, 0, 24)
+        local text = label(panel, tostring(hours), "GameFontHighlightSmall", 0, 0, 24)
         text:ClearAllPoints()
         text:SetPoint("LEFT", box, "RIGHT", 0, 0)
         box:SetScript("OnClick", function()
@@ -167,37 +201,37 @@ function SW:Attach()
         durationBoxes[index] = box
     end
 
-    -- The two prices as colored cards: stage 1 (green) and stage 2 (blue). The same
-    -- colors mark the rows in the offer list below.
+    -- ---- The two prices as colored strips (green = cheapest, blue = 25% level) ----
     local stageCards = {}
     for stage = 1, 2 do
-        local y = -82 - (stage - 1) * 28
+        local y = -62 - (stage - 1) * 28
         local card = CreateFrame("Frame", nil, panel)
-        card:SetPoint("TOPLEFT", 311, y)
-        card:SetSize(430, 26)
+        card:SetPoint("TOPLEFT", X + 78, y)
+        card:SetSize(362, 26)
         card.bg = card:CreateTexture(nil, "BACKGROUND")
         card.bg:SetAllPoints(card)
         if stage == 1 then card.bg:SetColorTexture(0.2, 0.8, 0.35, 0.28)
         else card.bg:SetColorTexture(0.25, 0.55, 1, 0.30) end
-        card.name = label(card, stage == 1 and "Günstigstes" or "25 %-Stufe", "GameFontNormal", 8, -6, 100)
-        card.price = label(card, "", "GameFontHighlight", 112, -6, 110)
-        card.amount = label(card, "", "GameFontHighlight", 226, -6, 70)
-        card.total = label(card, "", "GameFontDisableSmall", 300, -8, 84)
+        card.name = label(card, stage == 1 and "Günstigstes" or "25 %-Stufe", "GameFontNormal", 6, -6, 82)
+        card.price = label(card, "", "GameFontHighlight", 90, -6, 90)
+        card.amount = label(card, "", "GameFontHighlight", 182, -6, 66)
+        card.total = label(card, "", "GameFontDisableSmall", 250, -8, 60)
         stageCards[stage] = card
     end
-    -- Share sold at the cheapest price; the rest goes to the 25 % level.
-    local share = edit(40, 386, -81)
+    -- Share sold at the cheapest price; the rest goes to the 25% level.
+    local share = edit(34, X + 78 + 308, -61)
     share:SetMaxLetters(3)
     share:SetScript("OnTextChanged", function(self, userInput)
         if userInput then SW:SetCheapShare(self:GetText()) end
     end)
-    label(panel, "%", "GameFontHighlight", 430, -88, 14)
-    local restShare = label(panel, "", "GameFontHighlight", 392, -116, 40)
+    label(panel, "%", "GameFontHighlight", X + 78 + 346, -68, 14)
+    local restShare = label(panel, "", "GameFontHighlight", X + 78 + 308, -96, 34)
     restShare:SetJustifyH("RIGHT")
-    label(panel, "%", "GameFontHighlight", 430, -116, 14)
+    label(panel, "%", "GameFontHighlight", X + 78 + 346, -96, 14)
+    local info = label(panel, "", "GameFontNormalSmall", X + 78, -120, 362)
 
-    -- Sell button on top; the wheel continues the rest of the plan.
-    local sell = button(panel, "Verkaufen", 200, 311, -140, function()
+    -- ---- Sell button (the first stage); the wheel does the rest ----
+    local sell = button(panel, "Verkaufen", 200, X + 78, -136, function()
         quantity:ClearFocus()
         share:ClearFocus()
         SW:PostNext()
@@ -205,13 +239,13 @@ function SW:Attach()
     end)
     sell:SetHeight(28)
     -- Only shown while the AH asks for a confirmation of the current post.
-    local post = button(panel, "Bestätigen", 200, 311, -140, function()
+    local post = button(panel, "Bestätigen", 200, X + 78, -136, function()
         quantity:ClearFocus()
         SW:PostNext()
         panel:RefreshSellWheel()
     end)
     post:SetHeight(28)
-    local stop = button(panel, "Stop", 70, 517, -140, function()
+    local stop = button(panel, "Stop", 64, X + 284, -136, function()
         SW:CancelPosting(true)
         SW:Stop()
         panel:RefreshSellWheel()
@@ -225,9 +259,9 @@ function SW:Attach()
     end)
     stop:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local wheelBox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    wheelBox:SetPoint("TOPLEFT", 597, -142)
+    wheelBox:SetPoint("TOPLEFT", X + 354, -138)
     wheelBox:SetSize(24, 24)
-    label(panel, "Rest per Mausrad", "GameFontHighlightSmall", 623, -149, 110)
+    label(panel, "Mausrad", "GameFontHighlightSmall", X + 380, -145, 60)
     wheelBox:SetScript("OnClick", function(self)
         SW:SetWheelEnabled(self:GetChecked() == true)
         panel:RefreshSellWheel()
@@ -240,100 +274,121 @@ function SW:Attach()
     end)
     wheelBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    local status = label(panel, "", "GameFontNormalSmall", 311, -174, 430)
+    local status = label(panel, "", "GameFontNormalSmall", X, -170, 440)
     status:SetWordWrap(true)
     status:SetHeight(26)
 
-    -- Offer list (cheapest first); rows where our prices land are highlighted.
-    local LIST_ROWS = 11
-    label(panel, "Preis", "GameFontDisableSmall", 314, -204, 100)
-    local headQuantity = label(panel, "Menge", "GameFontDisableSmall", 417, -204, 58)
+    -- ---- Offer list: a table with a header and a scrollable body ----
+    local header = panel:CreateTexture(nil, "BACKGROUND")
+    header:SetPoint("TOPLEFT", X, -198)
+    header:SetSize(424, 20)
+    header:SetColorTexture(0.18, 0.15, 0.1, 1)
+    label(panel, "Preis", "GameFontNormalSmall", X + 8, -203, 100)
+    local headQuantity = label(panel, "Verfügbar", "GameFontNormalSmall", X + 104, -203, 74)
     headQuantity:SetJustifyH("RIGHT")
-    local headShare = label(panel, "Konkurrenz kum.", "GameFontDisableSmall", 478, -204, 80)
+    local headShare = label(panel, "Konkurrenz kum.", "GameFontNormalSmall", X + 180, -203, 80)
     headShare:SetJustifyH("RIGHT")
+    label(panel, "Dein", "GameFontNormalSmall", X + 268, -203, 40)
+    label(panel, "Verkauf", "GameFontNormalSmall", X + 318, -203, 100)
+    local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", X, -220)
+    scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -30, 6)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(420, 1)
+    scroll:SetScrollChild(content)
     local listRows = {}
-    for i = 1, LIST_ROWS do
-        local y = -216 - (i - 1) * 16
-        local row = CreateFrame("Frame", nil, panel)
-        row:SetPoint("TOPLEFT", 309, y)
-        row:SetSize(432, 16)
+    local function getRow(i)
+        local row = listRows[i]
+        if row then return row end
+        row = CreateFrame("Frame", nil, content)
+        row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_HEIGHT)
+        row:SetSize(420, ROW_HEIGHT)
         row.bg = row:CreateTexture(nil, "BACKGROUND")
         row.bg:SetAllPoints(row)
-        row.price = label(row, "", "GameFontHighlightSmall", 5, -2, 100)
-        row.quantity = label(row, "", "GameFontHighlightSmall", 108, -2, 58)
+        row.price = label(row, "", "GameFontHighlightSmall", 8, -4, 100)
+        row.quantity = label(row, "", "GameFontHighlightSmall", 104, -4, 74)
         row.quantity:SetJustifyH("RIGHT")
-        row.share = label(row, "", "GameFontHighlightSmall", 169, -2, 80)
+        row.share = label(row, "", "GameFontHighlightSmall", 180, -4, 80)
         row.share:SetJustifyH("RIGHT")
-        row.tag = label(row, "", "GameFontHighlightSmall", 260, -2, 160)
+        row.owned = label(row, "", "GameFontHighlightSmall", 268, -4, 44)
+        row.tag = label(row, "", "GameFontHighlightSmall", 318, -4, 102)
         listRows[i] = row
+        return row
     end
-    local emptyList = label(panel, "Marktpreise laden …", "GameFontDisableSmall", 314, -222, 330)
+    local emptyList = label(panel, "Marktpreise laden …", "GameFontDisableSmall", X + 8, -226, 330)
 
     local note = label(panel, "", "GameFontDisableSmall", 9, -378, 280)
     panel.durationBoxes = durationBoxes
     panel.quantityBox, panel.shareBox = quantity, share
     panel.sellButton, panel.postButton, panel.stopButton, panel.wheelBox = sell, post, stop, wheelBox
-    panel.listRows, panel.stageCards = listRows, stageCards
+    panel.listRows, panel.stageCards, panel.inventoryCells = listRows, stageCards, cells
 
-    local GREEN, BLUE = "|cff60eb80", "|cff66b3ff"
-    local function stageColor(stage)
-        if stage == 2 then return BLUE end
-        return GREEN
-    end
-
-    -- Rows shown: the cheapest levels, plus the rows around our two prices.
-    local function visibleRows(listing)
-        local count = #listing
-        local keep = {}
-        for i = 1, math.min(3, count) do keep[i] = true end
-        for i, row in ipairs(listing) do
-            if row.stage then
-                for j = math.max(1, i - 1), math.min(count, i + 1) do keep[j] = true end
-            end
-        end
-        local result, last = {}, 0
+    -- Fills the table from the listing; only when the data changed.
+    local listSignature
+    local function fillList(listing, preview)
+        local count = listing and #listing or 0
+        local signature = ("%s:%d:%d:%d"):format(tostring(listing), preview and preview.quantity or 0,
+            preview and preview.counts[1] or 0, preview and preview.counts[2] or 0)
+        if signature == listSignature then return end
+        listSignature = signature
         for i = 1, count do
-            if keep[i] then
-                if last > 0 and i - last == 2 then result[#result + 1] = listing[i - 1]
-                elseif last > 0 and i - last > 2 then result[#result + 1] = { gap = true } end
-                result[#result + 1] = listing[i]
-                last = i
+            local entry, row = listing[i], getRow(i)
+            row:Show()
+            local color = entry.stage and (entry.stage == 3 and GREEN or stageColor(entry.stage)) or ""
+            local tint
+            if entry.stage == 2 then tint = { 0.25, 0.55, 1, 0.30 }
+            elseif entry.stage then tint = { 0.2, 0.8, 0.35, 0.30 }
+            elseif i % 2 == 0 then tint = { 1, 1, 1, 0.04 } end
+            if tint then row.bg:SetColorTexture(unpack(tint)) else row.bg:SetColorTexture(0, 0, 0, 0) end
+            row.price:SetText(color .. money(entry.price) .. (color ~= "" and "|r" or ""))
+            row.quantity:SetText(entry.planned and "" or tostring(entry.quantity))
+            row.share:SetText(("%.0f%%"):format((entry.share or 0) * 100))
+            row.owned:SetText(entry.owned and entry.owned > 0 and "|cffffd100Ja|r" or "|cff808080Nein|r")
+            local tag = ""
+            if entry.stage and preview then
+                local amount = entry.stage == 3 and preview.quantity or (preview.counts[entry.stage] or 0)
+                tag = ("%s> %d Stück|r"):format(color, amount)
             end
+            row.tag:SetText(tag)
         end
-        return result
-    end
-
-    local function itemIcon(id)
-        if C_Item and C_Item.GetItemIconByID then return C_Item.GetItemIconByID(id) end
-        if GetItemIcon then return GetItemIcon(id) end
+        for i = count + 1, #listRows do listRows[i]:Hide() end
+        content:SetHeight(math.max(1, count * ROW_HEIGHT))
+        if panel.shownListing ~= listing then
+            panel.shownListing = listing
+            scroll:SetVerticalScroll(0)
+        end
     end
 
     function panel:RefreshSellWheel()
         if not SW.open or not self:IsVisible() then return end
         if SW.inventoryPending then SW:RefreshInventory() end
         SW:Pump()
+        -- Left: the icon grid.
         local inventory = SW.inventory or {}
-        local pages = math.max(1, math.ceil(#inventory / ROWS))
+        local pages = math.max(1, math.ceil(#inventory / PER_PAGE))
         SW.inventoryPage = math.max(1, math.min(SW.inventoryPage, pages))
         empty:SetShown(#inventory == 0)
-        for i, row in ipairs(rows) do
-            local item = inventory[(SW.inventoryPage - 1) * ROWS + i]
-            row:SetShown(item ~= nil)
+        for i, cell in ipairs(cells) do
+            local item = inventory[(SW.inventoryPage - 1) * PER_PAGE + i]
+            cell:SetShown(item ~= nil)
+            cell.item = item
             if item then
-                row.item = item
-                row.name:SetText(item.name)
-                row.quantity:SetText(("%d/%d"):format(item.available, item.quantity))
-                row.selected:SetShown(SW.selected and SW.selected.id == item.id or false)
+                local texture = itemIcon(item.key.itemID)
+                if texture then cell.icon:SetTexture(texture) end
+                cell.count:SetText(item.available > 1 and tostring(item.available) or "")
+                if SW.selected and SW.selected.id == item.id then cell.border:SetColorTexture(1, 0.6, 0.1, 1)
+                else cell.border:SetColorTexture(0.25, 0.22, 0.18, 1) end
             end
         end
-        invPage:SetText(("%d / %d · %d items"):format(SW.inventoryPage, pages, #inventory))
+        invPage:SetText(("%d / %d · %d Items"):format(SW.inventoryPage, pages, #inventory))
         invPrev:SetEnabled(SW.inventoryPage > 1)
         invNext:SetEnabled(SW.inventoryPage < pages)
+
+        -- Right: item.
         local item = SW.plan and SW.plan.item or SW.selected
         title:SetText(item and item.name or "Links ein Item auswählen.")
         local texture = item and item.key and itemIcon(item.key.itemID)
         if texture then icon:SetTexture(texture) icon:Show() else icon:Hide() end
-        stock:SetText(SW.selected and ("In Taschen: %d · frei: %d"):format(SW.selected.quantity, SW.selected.available) or "")
         local editable = SW:CanEditSale()
         local preview, problem = SW:SalePreview()
         local plan = SW.plan
@@ -342,43 +397,9 @@ function SW:Attach()
             and not SW.waitingForBags and C_AuctionHouse.IsThrottledMessageSystemReady()
         local confirming = SW.post and SW.post.state == "confirm"
 
-        -- Offer list.
-        local listing = SW.listing
-        emptyList:SetShown(not listing)
-        local shown = listing and visibleRows(listing) or {}
-        for i, row in ipairs(listRows) do
-            local entry = shown[i]
-            row:SetShown(entry ~= nil)
-            if entry then
-                if entry.gap then
-                    row.bg:SetColorTexture(0, 0, 0, 0)
-                    row.price:SetText("|cff808080...|r")
-                    row.quantity:SetText("")
-                    row.share:SetText("")
-                    row.tag:SetText("")
-                else
-                    local color = entry.stage and (entry.stage == 3 and GREEN or stageColor(entry.stage)) or ""
-                    local tint = entry.stage == 2 and { 0.25, 0.55, 1, 0.30 } or entry.stage and { 0.2, 0.8, 0.35, 0.30 }
-                    if tint then row.bg:SetColorTexture(unpack(tint)) else row.bg:SetColorTexture(0, 0, 0, 0) end
-                    row.price:SetText(color .. money(entry.price) .. (color ~= "" and "|r" or ""))
-                    row.quantity:SetText(entry.planned and "" or tostring(entry.quantity))
-                    row.share:SetText(("%.0f%%"):format((entry.share or 0) * 100))
-                    local tag = ""
-                    if entry.stage and preview then
-                        local amount = 0
-                        if entry.stage == 3 then amount = preview.quantity
-                        else amount = preview.counts[entry.stage] or 0 end
-                        tag = ("%s> %d Stück|r"):format(color, amount)
-                    end
-                    if entry.owned and entry.owned > 0 then
-                        tag = tag .. (tag ~= "" and " " or "") .. ("|cffffd100dein %d|r"):format(entry.owned)
-                    end
-                    row.tag:SetText(tag)
-                end
-            end
-        end
+        fillList(SW.listing, preview)
 
-        -- The two stage cards (what would be posted, or what remains open).
+        -- The two strips.
         local merged = SW.presets and SW.presets[1].price == SW.presets[2].price
         for stage, card in ipairs(stageCards) do
             local preset = SW.presets and SW.presets[stage]
@@ -392,8 +413,7 @@ function SW:Attach()
                 card.total:SetText("wie Stufe 1")
             else
                 local amount = merged and preview.quantity or (preview.counts[stage] or 0)
-                local open = amount
-                local done = false
+                local open, done = amount, false
                 if plan then
                     local index = SW:PlanEntryIndex(plan, stage, true)
                     local entry = index and plan.entries[index]
@@ -421,6 +441,19 @@ function SW:Attach()
         note:SetText(("Laufzeit %d h · Mausrad %s"):format(SW.durationHours[duration],
             SW:WheelEnabled() and "setzt den Plan fort" or "aus"))
 
+        -- Info line: stock, deposit and gross total.
+        local infoText = ""
+        if SW.selected then
+            infoText = ("Taschen %d · frei %d"):format(SW.selected.quantity, SW.selected.available)
+            local amount = tonumber(SW.quantity)
+            if SW.selected.key and amount and amount >= 1 and C_AuctionHouse.CalculateCommodityDeposit then
+                local ok, deposit = pcall(C_AuctionHouse.CalculateCommodityDeposit, SW.selected.key.itemID, duration, amount)
+                if ok and type(deposit) == "number" then infoText = infoText .. ("  ·  Anzahlung %s"):format(money(deposit)) end
+            end
+            if preview and preview.total then infoText = infoText .. ("  ·  Gesamt %s"):format(money(preview.total)) end
+        end
+        info:SetText(infoText)
+
         -- Main button: one step per click.
         local steps, doneSteps = 0, 0
         local entries = plan and plan.entries or (preview and preview.entries) or {}
@@ -441,12 +474,8 @@ function SW:Attach()
         stop:SetEnabled(SW.plan ~= nil or SW.post ~= nil or SW.waitingForBags ~= nil or SW.request ~= nil or SW.queued ~= nil)
         refresh:SetEnabled(editable and SW.selected ~= nil and SW.request == nil and SW.queued == nil)
         local invalid = editable and SW.selected and not SW.request and not SW.queued and problem
-        local summary
-        if preview and steps > 0 and age then
-            summary = ("Marktstand: vor %d s · %d Stück · %s brutto vor AH-Gebühr"):format(age, preview.quantity, money(preview.total))
-        elseif age then
-            summary = ("Marktstand: vor %d s"):format(age)
-        end
+        local summary = age and ("Marktstand: vor %d s"):format(age) or nil
+        emptyList:SetShown(not SW.listing)
         status:SetText(busy or invalid or SW.status or summary or "Item auswählen.")
     end
     local elapsed = 0

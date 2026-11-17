@@ -22,7 +22,7 @@
 - **Max buy %.** One percentage of the normal price sets every item's buy limit, optionally kept live while you watch.
 - **Auto-Bait and manual bait** with a countdown to the next bait, a chat line for every bait and a "last bait" display.
 - **Profit at a glance.** Estimated profit updates the moment a purchase or bait sale is confirmed, with gold per hour.
-- **SellWheel like a selling tab.** Item on top, two colored price cards (green = cheapest, blue = 25% level, default 50/50) and the cheapest offers below with your prices highlighted. One click sells the first stage, the mouse wheel does the rest. Duration 2h / 8h / 24h.
+- **SellWheel like the Auctionator selling tab.** An icon grid of your bags on the left; on the right the item, quantity, duration, two colored price strips (green = cheapest, blue = 25% level, default 50/50) and a scrolling table of the market offers with your two prices highlighted. One click sells the first stage, the mouse wheel does the rest.
 
 ## Install
 
