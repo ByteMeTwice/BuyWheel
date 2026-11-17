@@ -1,4 +1,4 @@
-# BuyWheel · full reference
+# BuyWheel · technical reference
 
 [Back to the overview](../README.md)
 
