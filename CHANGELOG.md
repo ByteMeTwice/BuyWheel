@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.0 · 2026-11-17
+
+- Auto-Bait gets a **bait budget**: "budget" (baits per hour on average) saves up while the market is busy and is spent at the bait speed ("per min") in the quiet windows, so day and night no longer behave completely differently. "lasts" (hours) works the budget out from the bait material in your bags and the time left.
+- The bait price field moved to the first options row; the second row now holds Auto-Bait, speed, budget and lasts. The status shows the budget and the countdown.
+
 ## 0.8.5 · 2026-11-17
 
 - All SellWheel texts are English again (labels, buttons, tooltips, status messages), as well as the depth status, the purchase pop-up and the bait chat line.

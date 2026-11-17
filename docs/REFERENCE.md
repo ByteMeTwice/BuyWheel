@@ -582,3 +582,18 @@ to zero, after a confirmation. Watch checkboxes stay. Items without a positive
 buy limit are not watched, so run **Start Learning Prices** before watching again;
 that run is then the only data in use. It is not possible while watching or
 learning.
+
+## Bait budget (Multi)
+
+Auto-Bait has two kinds of limits. **per min** is only the speed while baiting is
+allowed (the market is quiet, nothing is buyable). The **budget** (field "budget",
+baits per hour on average, 0 = no limit) is how many baits are posted over time. It
+saves up while the market is busy, up to about half an hour's worth (at least 2,
+at most 30 baits), so a short quiet window during the day can be used at the fast
+speed, while a long quiet night cannot use up more than the budget allows.
+
+**lasts** (hours, 0 = off) works the budget out by itself: it divides the units of
+the watched items (with a learned normal price) in your bags by the hours that are
+left, and corrects as you use material. It wins over the fixed number. The status
+at the right edge shows the current budget ("budget 5.3/h") and the countdown to
+the next bait. A bait uses one saved-up unit; baits from the Bait now button do not.

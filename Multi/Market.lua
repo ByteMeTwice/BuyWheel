@@ -1326,6 +1326,7 @@ local function finishPost(message, success)
                 ab.postTimes[#ab.postTimes + 1] = now
                 ab.justPosted[post.target.id] = now
                 ab.nextDue = now + (BW:AutoBaitInterval() or 10)
+                if BW:AutoBaitTokens() then ab.tokens = ab.tokens - 1 end
             else
                 ab.nextDue = now + 8
             end
@@ -1584,7 +1585,80 @@ function BW:AutoBaitReset()
     self.replyTimes = {}
     self.ab = { postTimes = {}, justPosted = {}, owner = {}, quiet = false, nextDue = now + 2 }
     self.ab.settleUntil = now + self:AutoBaitSettle()
+    -- Budget: the first bait is allowed at once; "lasts" counts down from the start.
+    self.ab.tokens, self.ab.tokenAt = 1, now
+    local hours = tonumber(self.db.baitLastsHours) or 0
+    if hours > 0 then self.ab.endAt = now + hours * 3600 end
     self.autoBaitTarget, self.autoBaitPrice = nil, nil
+end
+
+-- Bait budget. "per min" is only the speed while baiting is allowed; the budget is
+-- how many baits per hour are allowed on average. It saves up while the market is
+-- busy (to a limit), so the short quiet windows can be used at the fast speed, and
+-- it keeps a quiet night from using up everything.
+function BW:SetBaitsPerHour(value)
+    local number = tonumber(value)
+    if not number or number ~= math.floor(number) or number < 0 or number > 999 then return end
+    self.db.baitsPerHour = number
+end
+
+-- "Lasts": hours the bait material in the bags should last; the budget is then
+-- worked out from the current stock and the time left. 0 = off.
+function BW:SetBaitLastsHours(value)
+    local number = tonumber(value)
+    if not number or number ~= math.floor(number) or number < 0 or number > 99 then return end
+    self.db.baitLastsHours = number
+    if self.ab then self.ab.endAt = number > 0 and GetTime() + number * 3600 or nil end
+end
+
+-- Units in the bags of the watched commodities that Auto-Bait can use (cached 20 s).
+function BW:AutoBaitStock()
+    local ab, now = self.ab, GetTime()
+    if ab and ab.stockAt and now - ab.stockAt < 20 then return ab.stock end
+    local wanted = {}
+    for _, key in ipairs(self.runWatchKeys or self:WatchKeys() or {}) do
+        local id = self:WatchID(key)
+        local entry = self.db.watchItems and self.db.watchItems[id]
+        if entry and entry.enabled and Addon:LearnedNormalPrice(self, id) then wanted[key.itemID] = true end
+    end
+    local total = 0
+    for bag = 0, lastBag + 1 do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) do
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            if info and info.itemID and wanted[info.itemID] and not info.isLocked then
+                total = total + (info.stackCount or 1)
+            end
+        end
+    end
+    if ab then ab.stock, ab.stockAt = total, now end
+    return total
+end
+
+-- Baits per hour allowed right now, or nil for no limit. "Lasts" wins over the
+-- fixed number.
+function BW:AutoBaitBudget()
+    local ab = self.ab
+    local hours = tonumber(self.db.baitLastsHours) or 0
+    if hours > 0 and ab and ab.endAt then
+        local left = (ab.endAt - GetTime()) / 3600
+        if left > 0.05 then return self:AutoBaitStock() / left end
+        return nil
+    end
+    local perHour = tonumber(self.db.baitsPerHour) or 0
+    if perHour > 0 then return perHour end
+end
+
+-- Brings the saved-up baits up to date. Returns tokens and the budget (per hour),
+-- or nil without a budget.
+function BW:AutoBaitTokens()
+    local ab = self.ab
+    local budget = self:AutoBaitBudget()
+    if not ab or not budget then return nil end
+    local now = GetTime()
+    local cap = math.min(30, math.max(2, math.ceil(budget / 2)))
+    ab.tokens = math.min(cap, (ab.tokens or 1) + (now - (ab.tokenAt or now)) * budget / 3600)
+    ab.tokenAt = now
+    return ab.tokens, budget
 end
 
 -- Called with every complete batch reply while watching.
@@ -1729,6 +1803,8 @@ function BW:AutoBaitWheel()
     if recoveryTimer then return count("recovery") end
     if self:Offer() then return count("offer_buyable") end
     if not self:AutoBaitInterval() then return count("latency_high") end
+    local tokens = self:AutoBaitTokens()
+    if tokens and tokens < 1 then return count("budget") end
     local pick = self:AutoBaitPick()
     if not pick then ab.nextDue = now + 5 return count("no_eligible_item") end
     ab.nextDue = now + 3 -- protects against retrying every step if validation fails
@@ -1745,17 +1821,20 @@ function BW:AutoBaitStatus()
     while ab.postTimes[1] and now - ab.postTimes[1] > 60 do table.remove(ab.postTimes, 1) end
     count = #ab.postTimes
     local reason, remaining
+    local tokens, budget = self:AutoBaitTokens()
     if self.autoBaitTarget or baitWait or (post and post.auto) then reason = "posting"
     elseif not self:AutoBaitInterval() then reason = "latency too high"
     elseif not ab.quiet then reason = "market active"
     elseif now < ab.settleUntil then reason = "settling"
     elseif now < ab.nextDue then reason = "waiting"
+    elseif tokens and tokens < 1 then reason = "budget"
     else reason = "ready" end
     -- Seconds until a bait is allowed again (only while the market is quiet).
-    if reason == "settling" or reason == "waiting" then
-        remaining = math.max(ab.settleUntil, ab.nextDue) - now
+    if reason == "settling" or reason == "waiting" or reason == "budget" then
+        local budgetReady = tokens and tokens < 1 and now + (1 - tokens) * 3600 / budget or now
+        remaining = math.max(ab.settleUntil, ab.nextDue, budgetReady) - now
     end
-    return count, reason, remaining
+    return count, reason, remaining, budget
 end
 
 function BW:WatchPurchase(order)

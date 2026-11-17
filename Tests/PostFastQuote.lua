@@ -1355,4 +1355,40 @@ test("explicit learning replaces old live buffers instead of reusing stale sampl
     eq(f.mode.db.learnedPrices[f.mode.target.id].normalPrice, 200)
 end)
 
+test("Bait budget: it saves up while blocked, and Lasts derives the budget from stock and time", function()
+    local f = fixture({ multi = true, realStats = true })
+    local mode = f.mode
+    local key = { itemID = 2589 }
+    local id = mode:WatchID(key)
+    mode.db.watchItems[id] = { key = key, enabled = true, maxPrice = 100 }
+    mode.db.learnedPrices = { [id] = { normalPrice = 100 } }
+    mode.runWatchKeys = { key }
+    mode.ab = { tokens = 1, tokenAt = f.now, postTimes = {}, justPosted = {}, owner = {} }
+    eq(mode:AutoBaitBudget(), nil, "no budget set: unlimited")
+    eq(mode:AutoBaitTokens(), nil)
+    mode:SetBaitsPerHour(7000)
+    eq(mode.db.baitsPerHour, nil, "invalid values are ignored")
+    mode:SetBaitsPerHour(6)
+    eq(mode:AutoBaitBudget(), 6)
+    eq(mode:AutoBaitTokens(), 1)
+    f.now = f.now + 1800
+    eq(mode:AutoBaitTokens(), 3, "half an hour saves up 3 baits, capped at max(2, ceil(6 / 2)) = 3")
+    f.now = f.now + 7200
+    eq(mode:AutoBaitTokens(), 3, "the saved-up baits are capped")
+    mode.ab.tokens = mode.ab.tokens - 1
+    f.now = f.now + 600
+    eq(mode:AutoBaitTokens(), 3, "10 minutes bring back the one that was used")
+    -- Lasts: 1 item in the bags (fixture), 2 hours -> 0.5 baits per hour; wins over the number.
+    mode:SetBaitLastsHours(2)
+    eq(mode:AutoBaitStock(), 1)
+    local perHour = mode:AutoBaitBudget()
+    assert(math.abs(perHour - 0.5) < 1e-6, "budget " .. tostring(perHour))
+    f.now = f.now + 3600
+    mode.ab.stockAt = nil
+    perHour = mode:AutoBaitBudget()
+    assert(math.abs(perHour - 1) < 1e-6, "one hour left: the same stock must last half the time, got " .. tostring(perHour))
+    mode:SetBaitLastsHours(0)
+    eq(mode:AutoBaitBudget(), 6, "0 switches Lasts off again")
+end)
+
 print("PASS " .. count .. " integration scenarios; all addon files compile as Lua 5.1")
