@@ -61,6 +61,8 @@ To update later, run **the same file again**. If it cannot find the AddOns folde
 
 ## How it works
 
+![How BuyWheel works](docs/how-it-works.webp)
+
 - **Normal price.** The addon measures the market depth of every favorite (price where the first 10% of the supply, at least 20 units, is reached), ignoring your own listings. Between measurements the lowest price moves the value, within bounds. A value without a fresh measurement turns yellow, then red.
 - **Buy limit.** Limit = normal price × Max buy %. Items under their limit are ranked by estimated profit per unit.
 - **Bait.** A bait is a single listing at a low price that you post to attract buyers. Auto-Bait posts them when the market is quiet, at a rate and a price percentage you choose.
