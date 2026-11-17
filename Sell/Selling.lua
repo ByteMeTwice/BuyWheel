@@ -58,9 +58,9 @@ end
 -- supply is reached (share of the total, at least that many units). Thin leading
 -- levels are usually bait and are skipped.
 local significantShare, significantUnits = 0.05, 5
--- ...or when a single level holds this share of the supply on its own (a large
--- real level below the 5% point is not bait).
-local singleShare = 0.02
+-- ...or when a single level holds this share of the supply on its own (at least
+-- 5 units): a real level below the 5% point is not bait, even in a huge market.
+local singleShare = 0.005
 
 function SW:UpdatePrices()
     self.presets, self.listing = nil, nil

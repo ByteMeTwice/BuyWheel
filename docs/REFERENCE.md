@@ -103,9 +103,9 @@ Two prices are used, as colored strips and highlighted at their rows in the tabl
 
 - **Günstigstes** (green): the price of the first *meaningful* level itself, not
   undercut by a copper. A level counts once the supply up to it reaches about 5%
-  of the competing supply (at least 5 units), or when it holds 2% of the supply on
-  its own, so a thin bait level at the very bottom is skipped but a large real
-  level is not.
+  of the competing supply (at least 5 units), or when it holds 0.5% of the supply
+  on its own (at least 5 units), so a thin bait level at the very bottom is
+  skipped but a real level is not, even in a market of many thousand units.
 - **25 %-Stufe** (blue): just below the price level where about 25% of the
   competing supply is reached, never below the first meaningful level.
 

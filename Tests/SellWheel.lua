@@ -394,6 +394,21 @@ test("A large real level below the 5% point still counts as the cheapest price",
     eq(f.sell.presets[1].price, 1960, "188 units are 3% of the supply: a real level, the 1-unit bait is skipped")
 end)
 
+test("In a huge market the first real level is the cheapest price", function()
+    local f = fixture()
+    f.bags[0][1].stackCount = 100
+    f:open()
+    -- Mageweave Cloth: ~17000 units; 229 units at 399 are 1%, but not bait.
+    f:read(2589, { { unitPrice = 399, quantity = 229 }, { unitPrice = 400, quantity = 129 },
+        { unitPrice = 407, quantity = 15 }, { unitPrice = 408, quantity = 249 }, { unitPrice = 409, quantity = 244 },
+        { unitPrice = 410, quantity = 563 }, { unitPrice = 450, quantity = 15000 } })
+    eq(f.sell.presets[1].price, 399, "229 units hold more than 0.5% of the supply")
+    -- A thin leading bait is still skipped.
+    f:read(2589, { { unitPrice = 100, quantity = 3 }, { unitPrice = 399, quantity = 229 },
+        { unitPrice = 450, quantity = 15000 } })
+    eq(f.sell.presets[1].price, 399, "3 units are below the 5-unit minimum")
+end)
+
 test("After a sale the next sellable item is selected automatically", function()
     local f = seller(100)
     f.sell:PostNext()

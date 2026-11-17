@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.8.4 · 2026-11-17
+
+- SellWheel: the single-level rule for "Günstigstes" is now 0.5% of the supply (at least 5 units) instead of 2%, so real offers at the bottom of a huge market count (example: 229 units at 3s 99c in a market of 17000). Baits of a few units are still skipped.
+
 ## 0.8.3 · 2026-11-17
 
 - SellWheel: when the selected item is sold out, the next sellable item is selected automatically and its market prices are loaded, so the list is never empty.
