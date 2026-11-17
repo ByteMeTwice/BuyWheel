@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.6 · 2026-11-17
+
+- BuyWheelS: the "Repeat bait" label now sits next to its checkbox (it floated above the Spend Up To boxes).
+
 ## 0.7.5 · 2026-11-17
 
 - BuyWheelS: tidied the panel. The current price and Refresh sit directly under the item name, the Max Buy / Spend Up To boxes follow, then the whole Bait row (Bait sell, three boxes of the same size, Bait button and the bait timer to its right), Repeat bait below it, then GO / STOP.
