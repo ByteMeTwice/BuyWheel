@@ -435,8 +435,8 @@ item's current max buy price with the bait price and names up to four items in
 the Bait price tooltip.
 
 The **Auto-Bait** checkbox (row below the options) posts one bait of a random
-watched commodity from your bags while watching. **per min** sets the rate
-(1-10, default 10 is also the maximum) and **Price %** the bait price as a
+watched commodity from your bags while watching. **Material lasts** (hours)
+spreads the bait material over that time (see "Bait budget") and **Bait price** is the bait price as a
 percentage of the item's learned normal price (default 100; whole silver when the
 client requires it). Items without a learned price, without sellable stock, or
 with an own listing in the latest scan are skipped, so at most one own bait per
@@ -585,18 +585,19 @@ learning.
 
 ## Bait budget (Multi)
 
-Auto-Bait has two kinds of limits. **per min** is only the speed while baiting is
-allowed (the market is quiet, nothing is buyable). The **budget** (field "budget",
-baits per hour on average, 0 = no limit) is how many baits are posted over time. It
-saves up while the market is busy, up to about half an hour's worth (at least 2,
-at most 30 baits), so a short quiet window during the day can be used at the fast
-speed, while a long quiet night cannot use up more than the budget allows.
+**Material lasts** (hours, default 8, 0 = no limit) is the only rate setting of
+Auto-Bait. It spreads the bait material in your bags (units of the watched items with
+a learned normal price) over that many hours: the budget in baits per hour is the
+stock divided by the time left, and it is corrected as you use material. The
+status at the right edge shows the current budget ("budget 5.3/h") and the
+countdown to the next bait. When the hours have passed and watching goes on, the
+rest is spread over the next period.
 
-**lasts** (hours, 0 = off) works the budget out by itself: it divides the units of
-the watched items (with a learned normal price) in your bags by the hours that are
-left, and corrects as you use material. It wins over the fixed number. The status
-at the right edge shows the current budget ("budget 5.3/h") and the countdown to
-the next bait. A bait uses one saved-up unit; baits from the Bait now button do not.
+The budget saves up while the market is busy, up to about half an hour's worth (at
+least 2, at most 30 baits), so a short quiet window during the day can be used at
+the full speed (up to 10 per minute, with random delays), while a long quiet night
+cannot use up more than the budget allows. A bait uses one saved-up unit; baits
+from the Bait now button do not.
 
 ## Bait fingerprint
 

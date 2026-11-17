@@ -1361,40 +1361,37 @@ test("explicit learning replaces old live buffers instead of reusing stale sampl
     eq(f.mode.db.learnedPrices[f.mode.target.id].normalPrice, 200)
 end)
 
-test("Bait budget: it saves up while blocked, and Lasts derives the budget from stock and time", function()
+test("Bait budget: the material is spread over the hours; the budget saves up", function()
     local f = fixture({ multi = true, realStats = true })
     local mode = f.mode
-    local key = { itemID = 2589 }
-    local id = mode:WatchID(key)
-    mode.db.watchItems[id] = { key = key, enabled = true, maxPrice = 100 }
-    mode.db.learnedPrices = { [id] = { normalPrice = 100 } }
-    mode.runWatchKeys = { key }
-    mode.ab = { tokens = 1, tokenAt = f.now, postTimes = {}, justPosted = {}, owner = {} }
-    eq(mode:AutoBaitBudget(), nil, "no budget set: unlimited")
-    eq(mode:AutoBaitTokens(), nil)
-    mode:SetBaitsPerHour(7000)
-    eq(mode.db.baitsPerHour, nil, "invalid values are ignored")
-    mode:SetBaitsPerHour(6)
-    eq(mode:AutoBaitBudget(), 6)
-    eq(mode:AutoBaitTokens(), 1)
-    f.now = f.now + 1800
-    eq(mode:AutoBaitTokens(), 3, "half an hour saves up 3 baits, capped at max(2, ceil(6 / 2)) = 3")
-    f.now = f.now + 7200
-    eq(mode:AutoBaitTokens(), 3, "the saved-up baits are capped")
-    mode.ab.tokens = mode.ab.tokens - 1
-    f.now = f.now + 600
-    eq(mode:AutoBaitTokens(), 3, "10 minutes bring back the one that was used")
-    -- Lasts: 1 item in the bags (fixture), 2 hours -> 0.5 baits per hour; wins over the number.
+    mode.AutoBaitStock = function() return 12 end
+    mode.ab = { tokens = 0, tokenAt = f.now, postTimes = {}, justPosted = {}, owner = {} }
+    eq(mode:BaitLastsHours(), 8, "default: 8 hours")
+    mode:SetBaitLastsHours(100)
+    eq(mode:BaitLastsHours(), 8, "invalid values are ignored")
     mode:SetBaitLastsHours(2)
-    eq(mode:AutoBaitStock(), 1)
-    local perHour = mode:AutoBaitBudget()
-    assert(math.abs(perHour - 0.5) < 1e-6, "budget " .. tostring(perHour))
+    eq(mode:BaitLastsHours(), 2)
+    local budget = mode:AutoBaitBudget()
+    assert(math.abs(budget - 6) < 1e-6, "12 items over 2 hours are 6 per hour, got " .. tostring(budget))
     f.now = f.now + 3600
-    mode.ab.stockAt = nil
-    perHour = mode:AutoBaitBudget()
-    assert(math.abs(perHour - 1) < 1e-6, "one hour left: the same stock must last half the time, got " .. tostring(perHour))
+    budget = mode:AutoBaitBudget()
+    assert(math.abs(budget - 12) < 1e-6, "one hour left for the same stock: 12 per hour, got " .. tostring(budget))
+    -- Tokens: 10 minutes with 50 minutes left of the 2 hours; capped.
+    mode.ab.tokens, mode.ab.tokenAt = 0, f.now
+    f.now = f.now + 600
+    local tokens = mode:AutoBaitTokens()
+    assert(tokens > 2.2 and tokens < 2.6, "10 minutes at about 14 per hour save up about 2.4, got " .. tostring(tokens))
+    f.now = f.now + 7200
+    tokens = mode:AutoBaitTokens()
+    assert(tokens <= 30, "the saved-up baits are capped")
+    -- After the hours have passed the rest is spread over the next period.
+    mode.ab.endAt = f.now - 10
+    assert(mode:AutoBaitBudget() > 0)
+    assert(mode.ab.endAt > f.now, "the period restarts")
+    -- 0 hours: no limit.
     mode:SetBaitLastsHours(0)
-    eq(mode:AutoBaitBudget(), 6, "0 switches Lasts off again")
+    eq(mode:AutoBaitBudget(), nil)
+    eq(mode:AutoBaitTokens(), nil)
 end)
 
 test("Bait prices carry the fingerprint in Single and Multi", function()

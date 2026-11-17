@@ -1541,22 +1541,15 @@ function BW:SetAutoBait(enabled)
     self.db.autoBait = enabled == true
 end
 
-function BW:SetBaitsPerMinute(value)
-    local number = tonumber(value)
-    if not number or number ~= math.floor(number) or number < 1 or number > autoBaitMaxRate then return end
-    self.db.baitsPerMinute = number
-end
-
 function BW:SetBaitPercent(value)
     local number = tonumber(value)
     if not number or number < 1 or number > 1000 then return end
     self.db.baitPercent = number
 end
 
-function BW:AutoBaitRate()
-    local rate = tonumber(self.db.baitsPerMinute) or autoBaitMaxRate
-    return math.max(1, math.min(autoBaitMaxRate, rate))
-end
+-- The speed while baiting is allowed. How many baits are posted over time is set by
+-- the hours the material should last (see AutoBaitBudget), not by this speed.
+function BW:AutoBaitRate() return autoBaitMaxRate end
 
 function BW:AutoBaitPercent()
     return math.max(1, math.min(1000, tonumber(self.db.baitPercent) or 100))
@@ -1591,23 +1584,24 @@ function BW:AutoBaitReset()
     self.ab.settleUntil = now + self:AutoBaitSettle()
     -- Budget: the first bait is allowed at once; "lasts" counts down from the start.
     self.ab.tokens, self.ab.tokenAt = 1, now
-    local hours = tonumber(self.db.baitLastsHours) or 0
+    local hours = self:BaitLastsHours()
     if hours > 0 then self.ab.endAt = now + hours * 3600 end
     self.autoBaitTarget, self.autoBaitPrice = nil, nil
 end
 
--- Bait budget. "per min" is only the speed while baiting is allowed; the budget is
--- how many baits per hour are allowed on average. It saves up while the market is
--- busy (to a limit), so the short quiet windows can be used at the fast speed, and
--- it keeps a quiet night from using up everything.
-function BW:SetBaitsPerHour(value)
-    local number = tonumber(value)
-    if not number or number ~= math.floor(number) or number < 0 or number > 999 then return end
-    self.db.baitsPerHour = number
+-- Bait budget: Auto-Bait spreads the bait material in the bags over the chosen number
+-- of hours ("Material lasts"). The budget (baits per hour) is the stock divided by
+-- the time left, corrected as material is used. It saves up while the market is busy
+-- (to a limit), so short quiet windows can be used at the full speed, while a long
+-- quiet night cannot use up more than the budget allows. 0 hours = no limit.
+local defaultBaitLastsHours = 8
+
+function BW:BaitLastsHours()
+    local hours = tonumber(self.db.baitLastsHours)
+    if not hours or hours < 0 or hours > 99 then return defaultBaitLastsHours end
+    return hours
 end
 
--- "Lasts": hours the bait material in the bags should last; the budget is then
--- worked out from the current stock and the time left. 0 = off.
 function BW:SetBaitLastsHours(value)
     local number = tonumber(value)
     if not number or number ~= math.floor(number) or number < 0 or number > 99 then return end
@@ -1638,18 +1632,15 @@ function BW:AutoBaitStock()
     return total
 end
 
--- Baits per hour allowed right now, or nil for no limit. "Lasts" wins over the
--- fixed number.
+-- Baits per hour allowed right now, or nil for no limit. When the hours have passed
+-- and watching goes on, the rest is spread over the next period.
 function BW:AutoBaitBudget()
     local ab = self.ab
-    local hours = tonumber(self.db.baitLastsHours) or 0
-    if hours > 0 and ab and ab.endAt then
-        local left = (ab.endAt - GetTime()) / 3600
-        if left > 0.05 then return self:AutoBaitStock() / left end
-        return nil
-    end
-    local perHour = tonumber(self.db.baitsPerHour) or 0
-    if perHour > 0 then return perHour end
+    local hours = self:BaitLastsHours()
+    if hours <= 0 or not ab then return nil end
+    local now = GetTime()
+    if not ab.endAt or ab.endAt - now < 180 then ab.endAt = now + hours * 3600 end
+    return self:AutoBaitStock() / ((ab.endAt - now) / 3600)
 end
 
 -- Brings the saved-up baits up to date. Returns tokens and the budget (per hour),
@@ -1835,7 +1826,7 @@ function BW:AutoBaitStatus()
     else reason = "ready" end
     -- Seconds until a bait is allowed again (only while the market is quiet).
     if reason == "settling" or reason == "waiting" or reason == "budget" then
-        local budgetReady = tokens and tokens < 1 and now + (1 - tokens) * 3600 / budget or now
+        local budgetReady = tokens and tokens < 1 and budget > 0 and now + (1 - tokens) * 3600 / budget or now
         remaining = math.max(ab.settleUntil, ab.nextDue, budgetReady) - now
     end
     return count, reason, remaining, budget

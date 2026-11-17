@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.2 · 2026-11-17
+
+- Auto-Bait simplified: the fields "per min" and "budget" are gone. The only setting is **Material lasts [N] hours** (default 8): Auto-Bait spreads the bait material in your bags over that time and works out the rate itself. The bait speed during quiet windows is fixed.
+
 ## 0.9.1 · 2026-11-17
 
 - **Bait fingerprint:** every bait is posted at the nearest price that satisfies a fixed rule (from 2s up), so other BuyWheel users can recognize it. Always on, no setting. In the SellWheel table a probable BuyWheel bait is shown in violet with "BW" in the Own column.
