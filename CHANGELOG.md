@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.8.3 · 2026-11-17
+
+- SellWheel: when the selected item is sold out, the next sellable item is selected automatically and its market prices are loaded, so the list is never empty.
+
 ## 0.8.2 · 2026-11-17
 
 - SellWheel: "Günstigstes" no longer skips a large real level. A price level now counts as the first real offer also when it holds 2% of the supply on its own (example: 188 units at 19s 60c in a market of 5900), besides the existing 5% rule. Thin bait levels are still skipped.

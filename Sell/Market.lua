@@ -9,6 +9,14 @@ local function id(key)
 end
 
 function SW:RefreshInventory()
+    -- Position of the selected item in the old list: if it disappears (sold out), the next
+    -- sellable item at that position is selected automatically.
+    local previousIndex
+    if self.selected and self.inventory then
+        for i, listed in ipairs(self.inventory) do
+            if listed.id == self.selected.id then previousIndex = i break end
+        end
+    end
     local items = {}
     for bag = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
@@ -46,6 +54,9 @@ function SW:RefreshInventory()
     end
     self.inventoryPending = false
     if self.CheckBagUpdate then self:CheckBagUpdate() end
+    if previousIndex and not self.selected and #self.inventory > 0 and not self.post and not self.plan then
+        self:Select(self.inventory[math.min(previousIndex, #self.inventory)])
+    end
 end
 
 -- Quantity is aggregated by unit price, including one-unit offers. Own counts

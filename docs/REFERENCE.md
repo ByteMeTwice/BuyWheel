@@ -97,7 +97,7 @@ the two price strips, the info line (stock, deposit, gross total), the
 **Verkaufen** button, and below it a **table of the market offers** (Preis,
 Verfügbar, cumulative share of the competition, "Dein" = your own listings in
 that price level, and the Verkauf column). The table scrolls; it starts at the
-cheapest offer. Your own listings never count as competition.
+cheapest offer. Your own listings never count as competition. When an item is sold out, the next sellable item of the grid is selected automatically and its prices are loaded.
 
 Two prices are used, as colored strips and highlighted at their rows in the table:
 

@@ -394,6 +394,19 @@ test("A large real level below the 5% point still counts as the cheapest price",
     eq(f.sell.presets[1].price, 1960, "188 units are 3% of the supply: a real level, the 1-unit bait is skipped")
 end)
 
+test("After a sale the next sellable item is selected automatically", function()
+    local f = seller(100)
+    f.sell:PostNext()
+    f:completePost()
+    eq(f.sell.plan, nil)
+    f.ready = true
+    f:emit("AUCTION_HOUSE_THROTTLED_SYSTEM_READY")
+    f.sell:RefreshInventory()
+    eq(f.sell.selected and f.sell.selected.key.itemID, 2592, "the next item takes the place of the sold-out one")
+    eq(f.calls[#f.calls].name, "SendSearchQuery")
+    eq(f.calls[#f.calls].key.itemID, 2592, "its market prices are loaded")
+end)
+
 test("The list marks the rows our two prices land on, including planned prices without a level", function()
     local f = seller(50)
     local found = {}
