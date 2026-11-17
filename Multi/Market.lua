@@ -1690,31 +1690,46 @@ function BW:AutoBaitPick()
         local j = math.random(i)
         order[i], order[j] = order[j], order[i]
     end
-    local percent, now, tries = self:AutoBaitPercent(), GetTime(), 0
+    local percent, now = self:AutoBaitPercent(), GetTime()
     local wholeSilver = AH.SupportsCopperValues and not AH.SupportsCopperValues()
+    -- One cheap pass over the bags: only items that are actually in the bags are
+    -- worth the (expensive) sellable check. Without this the pick gave up after a
+    -- few material-less items of a long watch list, although other items had stock.
+    local inBags = {}
+    for bag = 0, lastBag + 1 do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) do
+            local bagInfo = C_Container.GetContainerItemInfo(bag, slot)
+            if bagInfo and bagInfo.itemID and not bagInfo.isLocked then inBags[bagInfo.itemID] = true end
+        end
+    end
     for _, index in ipairs(order) do
         local key = keys[index]
         local id = self:WatchID(key)
         local entry = self.db.watchItems[id]
         local normal = Addon:LearnedNormalPrice(self, id)
-        local info = AH.GetItemKeyInfo(key)
         -- Why items were passed over, summed per pick (db.autoBaitDiag, "skip_*").
         local diag = self.db.autoBaitDiag
         local function skip(reason) if diag then diag[reason] = (diag[reason] or 0) + 1 end end
-        if entry and entry.enabled and normal and info and info.itemName and info.isCommodity
-            and ab.owner[id] then skip("skip_own_listing") end
-        if entry and entry.enabled and normal and info and info.itemName and info.isCommodity
-            and not ab.owner[id] and not (ab.justPosted[id] and now - ab.justPosted[id] < 20) then
-            tries = tries + 1
-            local target = { key = key, id = id, name = info.itemName, commodity = true,
-                browseName = info.itemName, stackSize = 1 }
-            if findSellableItem(target) then
-                local price = math.floor(normal * percent / 100)
-                if wholeSilver then price = math.max(100, math.floor(price / 100) * 100) end
-                return { target = target, price = math.max(1, price) }
+        if entry and entry.enabled and normal then
+            if not inBags[key.itemID] then
+                skip("skip_no_material")
+            else
+                local info = AH.GetItemKeyInfo(key)
+                if info and info.itemName and info.isCommodity then
+                    if ab.owner[id] then
+                        skip("skip_own_listing")
+                    elseif not (ab.justPosted[id] and now - ab.justPosted[id] < 20) then
+                        local target = { key = key, id = id, name = info.itemName, commodity = true,
+                            browseName = info.itemName, stackSize = 1 }
+                        if findSellableItem(target) then
+                            local price = math.floor(normal * percent / 100)
+                            if wholeSilver then price = math.max(100, math.floor(price / 100) * 100) end
+                            return { target = target, price = math.max(1, price) }
+                        end
+                        skip("skip_unsellable")
+                    end
+                end
             end
-            skip("skip_no_material")
-            if tries >= 8 then return end
         end
     end
 end

@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.13 · 2026-11-17
+
+- BWM: fixed "No watched item with bait material, a learned price and no own bait up" although the bags held material. The bait pick gave up after 8 watched items without material (in random order), so with a long watch list it often never reached the items that had stock. The bags are now scanned once and only items that are really in the bags are checked; the limit is gone. New diagnostic counter `skip_unsellable` (in the bags but not postable).
+
 ## 0.9.12 · 2026-11-17
 
 - SellWheel: a **Posted** line at the bottom left adds up everything you post (quantity x price, before fees) and shows what the 25% level added on top (`Posted: 48g 20s  + 6g 10s at 25%`). It is saved between sessions; **Reset** next to it starts a new count, and the tooltip lists the items.
