@@ -28,16 +28,16 @@ Leaves one item at the lowest price. For indivisible stacks, it leaves the cheap
 |cffffd100Buy Bait · x1|r
 With Leave Bait off, requests a server quote for one commodity item directly from the Browse price. This can skip the detailed listing query. The server quote must pass the price and budget checks.
 
-|cffffd100Buy Bait quantity · experimental|r
+|cffffd100Buy Bait quantity · experimental (BuyWheelS only)|r
 Enter the quantity in the field beside the checkbox (default: 3, whole numbers from 1 to 999999). Requests one quote for exactly that many commodity items. Requires the full quantity to be listed and within budget. With Leave Bait off, unsuitable Browse matches are skipped instead of buying a smaller quantity. This option and x1 replace each other; press STOP before changing the option or quantity. The quantity is saved per tab.]],
     },
     {
         title = "Learning, limits and statistics",
         text = [[|cffffd100Learn normal prices · BuyWheelM|r
-Set Min (1–60 minutes) and Buy % (1–100), then press Start learning. All favorites are observed, including unchecked items. No purchases are made. Keep the auction house and this tab open.
+Set Max buy % (1–100), then press Start learning. All favorites are measured, including unchecked items; the button shows the progress in percent and the run ends by itself. No purchases are made. Keep the auction house and this tab open.
 
 |cffffd100Automatic limits|r
-The normal price is the median of the lowest listing prices sampled about every five seconds. At the end, each limit becomes the selected percentage of its normal price. Example: 2 gold at 60% becomes 1 gold 20 silver. An item needs ten samples; otherwise its limit stays unchanged. Persistent bait can affect the estimate.
+The normal price comes from the market depth (the price where the first 10% of the supply is reached) and from the lowest listing prices. At the end, each limit becomes the selected percentage of its normal price. Example: 2 gold at 60% becomes 1 gold 20 silver. An item needs ten samples; otherwise its limit stays unchanged. In the favorites list the normal price is grey when fine, yellow when you should be careful and red when old.
 
 |cffffd100Live normal prices · BuyWheelM|r
 The favorites list shows normal prices; click an item to edit its separate buy limit. While watching, existing complete Multi replies update enabled items using a ten-minute rolling median. At most one sample per item every five seconds; at least ten valid samples are required. Known own/account listings and single-unit groups are skipped. No additional queries are sent. The last reference remains until enough new data exists. Live updates affect normal prices only; buy limits remain separately editable. Persistent foreign bait can still affect the estimate. Explicit learning still applies its chosen buy percentage.

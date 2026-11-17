@@ -11,7 +11,7 @@
 | Tab | Short | What it is for |
 |---|---|---|
 | **BuyWheelS** | BWS | Watch **one** item, set a maximum price and a budget, scroll to buy. Manual bait posting. |
-| **BuyWheelM** | BWM | Watch **many** favorites at once. Learned normal prices, per-item limits, Volume Trading, Auto-Bait, live profit. |
+| **BuyWheelM** | BWM | Watch **many** favorites at once. Learned normal prices, per-item limits, always-on Volume Trading, Auto-Bait, live profit. |
 | **SellWheel** | SW | See the whole market as a price list and sell in two stages (cheapest / 25% level, default 50/50). |
 
 ## Highlights

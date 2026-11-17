@@ -2,6 +2,14 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.7.1 · 2026-11-17
+
+**BuyWheelM cleanup**
+- Removed the "Buy Bait" option with the quantity field from this tab. A saved setting becomes the one-item Buy Bait. (BuyWheelS keeps both.)
+- Volume Trading is now always on; the checkbox is gone.
+- The options area is re-ordered: Leave Bait and Buy Bait in the first row, "Tiefe/min" below.
+- The in-game help text now describes the depth-based learning and the progress display.
+
 ## 0.7.0 · 2026-11-17
 
 **SellWheel**

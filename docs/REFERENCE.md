@@ -72,7 +72,7 @@ At the end, limits become the selected percentage of each item's normal price
 item needs ten minimum-price samples; otherwise its limit remains unchanged. Existing watch checkboxes are preserved.
 Persistent bait can affect this estimate; it measures listings, not sale prices.
 
-Both tabs offer **Buy Bait** with a quantity field as an experimental alternative
+BuyWheelS offers **Buy Bait** with a quantity field (removed from BuyWheelM) as an experimental alternative
 to the one-item Buy Bait option. The field accepts whole numbers from 1 to
 999999 and defaults to 3. Each tab saves its own quantity. Selecting either
 checkbox deselects the other. With Leave Bait off, the configurable option
@@ -472,8 +472,8 @@ price is within the max buy price and red above it. The green purchase pop-up
 shows the average price paid the same way ("80% vom Normalpreis").
 
 The right column follows the order of use: learning (Max buy %, Limit live, Start
-learning), the shared budget in whole gold, the options (Volume Trading, Leave
-Bait, the two Buy Bait variants), the selected item with its max buy price and
+learning), the shared budget in whole gold, the options (Leave
+Bait, Buy Bait, depth queries per minute; Volume Trading is always on), the selected item with its max buy price and
 learned normal price, then a compact statistics block, the status line and
 Start watching / STOP. The statistics lead with the larger Est. profit line
 (with gold/hour and the Compare button); items/min, spending, budget left and

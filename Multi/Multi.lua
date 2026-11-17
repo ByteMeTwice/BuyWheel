@@ -57,7 +57,7 @@ end
 -- Browse does not tell us the quantity available at its minimum price. By default
 -- rank absolute estimated margin per unit, never the whole group's total quantity.
 -- Ties rotate by watch ID; a single pass avoids sorting or extra AH requests.
--- With db.volumeTrading, draw randomly among all items under their limit instead,
+-- Volume Trading is always on: draw randomly among all items under their limit instead,
 -- weighted by margin x listed quantity (capped), see below.
 function BW:ChooseWatch(rows)
     local chosen, bestMargin, bestID, bestNormal
@@ -89,7 +89,8 @@ function BW:ChooseWatch(rows)
     end
     self.candidateCount = #candidates
     self.watchSelection = nil
-    local volume = self.db.volumeTrading == true and #candidates > 1
+    -- Always on; only a test can switch it off (db.volumeTrading == false).
+    local volume = self.db.volumeTrading ~= false and #candidates > 1
     if volume then
         -- Volume trading: weighted random draw among every item under its limit,
         -- so cheap high-volume items are not starved by a single large margin.

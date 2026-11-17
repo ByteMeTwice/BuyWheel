@@ -197,6 +197,8 @@ local function priorityFixture()
     local f = fixture({ multi = true, realStats = true, fast = false, one = true })
     f.mode.watchLows = {}
     f.mode.db.learnedPrices = {}
+    -- The ranking tests need the deterministic order; Volume Trading is on by default.
+    f.mode.db.volumeTrading = false
     function f:candidate(id, price, normal, limit, quantity)
         local key = { itemID = id }
         local watchID = self.mode:WatchID(key)
@@ -216,6 +218,17 @@ test("Multi prioritizes absolute per-unit margin over rotation, discount percent
     eq(f.mode.watchSelection.margin, 60)
     eq(f.mode.watchSelection.source, "normal_price")
     eq(#f.calls, 0, "ranking never sends AH requests")
+end)
+
+test("Volume Trading is on by default: several candidates are drawn by weight", function()
+    local f = priorityFixture()
+    f.mode.db.volumeTrading = nil
+    local a = f:candidate(3001, 50, 100)
+    local b = f:candidate(3002, 80, 130)
+    local picked = f.mode:ChooseWatch({ a, b })
+    assert(picked == a or picked == b)
+    eq(f.mode.watchSelection.volume, true)
+    eq(f.mode.watchSelection.candidates, 2)
 end)
 
 test("Multi equal-margin matches rotate regardless of server row order", function()
