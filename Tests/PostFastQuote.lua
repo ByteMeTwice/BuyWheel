@@ -11,7 +11,7 @@ end
 -- deterministic AH. No real client, purchases or network calls are involved.
 for _, path in ipairs({ "Core.lua", "Fingerprint.lua", "Feedback.lua", "Statistics.lua", "Help.lua",
     "Single/Market.lua", "Single/Panel.lua", "Multi/Market.lua", "Multi/Multi.lua",
-    "Multi/Learning.lua", "Multi/Depth.lua", "Multi/Panel.lua", "Sell/Market.lua", "Sell/Selling.lua", "Sell/Panel.lua" }) do
+    "Multi/Learning.lua", "Multi/Depth.lua", "Multi/LeaveBait.lua", "Multi/Panel.lua", "Sell/Market.lua", "Sell/Selling.lua", "Sell/Panel.lua" }) do
     assert(loadfile(root .. path))
 end
 
@@ -117,6 +117,7 @@ local function fixture(options)
         setfenv(assert(loadfile(root .. "Multi/Multi.lua")), env)("BuyWheel", addon)
         setfenv(assert(loadfile(root .. "Multi/Learning.lua")), env)("BuyWheel", addon)
         setfenv(assert(loadfile(root .. "Multi/Depth.lua")), env)("BuyWheel", addon)
+        setfenv(assert(loadfile(root .. "Multi/LeaveBait.lua")), env)("BuyWheel", addon)
     end
     mode.db = { fastQuoteX3 = options.fast ~= false, fastQuote = options.one == true,
         fastQuoteQuantity = 10, leaveBait = options.leave == true, routes = {},

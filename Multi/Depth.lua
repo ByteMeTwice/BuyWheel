@@ -105,9 +105,8 @@ function BW:OwnActionRecent(id)
     return at ~= nil and GetTime() - at < ownQuiet
 end
 
--- Applies the item's buy limit when Limit live is on.
+-- Applies the item's buy limit on every live update (always on; the old "Limit live" option is gone).
 function BW:ApplyLiveLimit(id, learned, normal)
-    if not self.db.liveLimit then return end
     local watched = self.db.watchItems and self.db.watchItems[id]
     if not watched then return end
     local percent = tonumber(self.db.learnPercent) or 60

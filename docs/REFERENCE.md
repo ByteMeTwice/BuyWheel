@@ -424,7 +424,7 @@ A bait you post yourself (confirmed listing) flashes the panel border blue for
 0.45 seconds, like the green and red purchase results.
 
 The **Max buy %** field (learning row, "of normal") is the one percentage used by
-Start learning and by **Limit live**, which now sits in the budget row. Live
+Start learning and by the live limits (always on, no checkbox). Live
 updates set every watched item's max buy price to this percentage of its normal
 price, replacing older per-item percentages. The Auto-Bait warning compares each
 item's current max buy price with the bait price and names up to four items in
@@ -461,7 +461,7 @@ item's learned normal price (80% means 20% below normal). It is green while the
 price is within the max buy price and red above it. The green purchase pop-up
 shows the average price paid the same way ("80% of normal price").
 
-The right column follows the order of use: learning (Max buy %, Limit live, Start
+The right column follows the order of use: learning (Max buy %, Start
 learning), the shared budget in whole gold, the options (Leave
 Bait; Buy Bait is removed here and Volume Trading is always on), the selected item with its max buy price and
 learned normal price, then a compact statistics block, the status line and
@@ -479,11 +479,10 @@ and keeps its old limit. Live sampling also holds back a sample more than 35%
 below the rolling median (typical of foreign bait) until it persists for more
 than six consecutive 5-second samples, so real price drops are still followed.
 
-The **Limit live** checkbox (off by default, change only while stopped) lets each
+Live limits (always on; the former **Limit live** checkbox is gone) let each
 live normal-price update also set the item's max buy price to the same percentage
 of it. The percentage is the item's own learned percent, otherwise the Buy %
-field. A manually entered limit is overwritten by the next live update while the
-option is on. The raw median can still be influenced by sustained bait.
+field. A manually entered limit is overwritten by the next live update. The raw median can still be influenced by sustained bait.
 
 ## Live normal prices while watching in Multi
 
@@ -509,8 +508,7 @@ it despite the filtering and median. Live sampling pauses outside normal watchin
 and during explicit learning/benchmarking.
 
 The live label marks rolling estimates. Live changes update only the reference
-price and sample metadata. Without **Limit live** (above) they never recalculate
-buy limits or their configured percentage. A completed explicit learning run still applies its selected buy
+price and sample metadata. Live updates always set the buy limits to the configured percentage. A completed explicit learning run still applies its selected buy
 percentage, and clears older live samples for the items it updates. Raw rolling
 samples live only in memory; the last published normal price is saved. New
 purchases use the refreshed price; existing purchase/stock profit snapshots do

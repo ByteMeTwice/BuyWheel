@@ -151,11 +151,19 @@ function BW:RefreshAverage()
     end
 end
 
-function BW:SetLeaveBait(enabled)
+-- LeaveBaitThreshold / LeaveBaitFor live in Multi/LeaveBait.lua.
+function BW:SetLeaveBaitFrom(value)
     if purchase or self.benchmark then return end
-    self.db.leaveBait = enabled == true
+    local percent = tonumber(value)
+    if not percent or percent ~= math.floor(percent) or percent < 0 or percent > 100 then return end
+    self.db.leaveBaitFrom = percent
+    self.db.leaveBait = percent < 100 -- kept in step for older code paths
     if self.running then Addon:StartPurchaseStats(self) end
     self:Pump()
+end
+
+function BW:SetLeaveBait(enabled)
+    self:SetLeaveBaitFrom(enabled and 0 or 100)
 end
 
 function BW:CanChangeFastQuote()
@@ -182,11 +190,6 @@ function BW:SetBrowseBuy(enabled)
     self.offers = nil
     if self.running then Addon:StartPurchaseStats(self) end
     self:Pump()
-end
-
-function BW:SetLiveLimit(enabled)
-    if not self:CanChangeFastQuote() then return end
-    self.db.liveLimit = enabled == true
 end
 
 -- Night anchor: caps the normal price at 25% above the 7-day median (see Multi/Depth.lua).
@@ -224,7 +227,9 @@ function BW:Offer()
     if not self.offers or not self.maxPrice then return end
     if offerDeadline and GetTime() >= offerDeadline then return end
     local room = buyingRoom()
-    local bait = self.db.leaveBait
+    -- The bait decision follows the lowest listed price (the unit that would stay behind).
+    local lowest = self.offers[1]
+    local bait = lowest and self:LeaveBaitFor(self.target and self.target.id, lowest.unit)
     for i, entry in ipairs(self.offers) do
         if entry.unit > self.maxPrice then return end
         if entry.auctionID then
@@ -1016,7 +1021,7 @@ local function onBrowse(event)
         -- Direct buy (see BW:SetBrowseBuy): an offer straight from the browse row. Rows with
         -- own or account listings keep the normal listing query.
         local direct = BW.running and not cycle.preview and not purchase and BW.db.browseBuy
-            and not BW.db.leaveBait and BW.target.commodity and match
+            and not BW:LeaveBaitFor(BW.target.id, match and match.minPrice) and BW.target.commodity and match
             and match.containsOwnerItem == false and not match.containsAccountItem
             and (match.minPrice or 0) > 0 and match.minPrice <= (BW.maxPrice or 0)
             and match.minPrice <= buyingRoom() and (match.totalQuantity or 0) >= 1
@@ -1035,7 +1040,7 @@ local function onBrowse(event)
             cycle.done, cycle.answeredAt = true, BW.updatedAt
             scanSample("directBuyOffers")
             holdOffer()
-        elseif BW.running and not cycle.preview and not purchase and not BW.db.leaveBait and BW.target.commodity
+        elseif BW.running and not cycle.preview and not purchase and not BW:LeaveBaitFor(BW.target.id, match and match.minPrice) and BW.target.commodity
             and match and ((BW.db.fastQuoteX3 and (match.totalQuantity or 0) >= quoteQuantity)
                 or (not BW.db.fastQuoteX3 and (match.totalQuantity == 1 or (BW.db.fastQuote and (match.totalQuantity or 0) > 1))))
             and match.containsOwnerItem == false
@@ -1050,7 +1055,7 @@ local function onBrowse(event)
             scanSample(BW.db.fastQuoteX3 and "fastBrowseOffersX3" or single and "singleItemBrowseOffers" or "fastBrowseOffers")
             holdOffer()
         elseif BW.running and not cycle.preview and not purchase and BW.db.fastQuoteX3
-            and not BW.db.leaveBait and BW.target.commodity and (match or AH.HasFullBrowseResults()) then
+            and not BW:LeaveBaitFor(BW.target.id, match and match.minPrice) and BW.target.commodity and (match or AH.HasFullBrowseResults()) then
             -- Keep this experimental path at the configured quantity: no detail
             -- fallback that could silently turn the attempt into a one-item buy.
             BW.offers = nil
@@ -1249,7 +1254,8 @@ function BW:Buy()
     local order = {
         auctionID = offer.auctionID, itemID = self.target.key.itemID, quantity = offer.quantity,
         cost = offer.cost, unit = offer.unit, stage = offer.auctionID and "sent" or "quote",
-        name = self.target.name, leaveBait = self.db.leaveBait,
+        name = self.target.name,
+        leaveBait = self:LeaveBaitFor(self.target.id, self.offers and self.offers[1] and self.offers[1].unit or offer.unit),
         tradeKey = self.target.id, avgLimit = offer.avgLimit,
         normalPrice = Addon:LearnedNormalPrice(self, self.target.id),
     }

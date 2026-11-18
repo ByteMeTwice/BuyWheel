@@ -148,7 +148,7 @@ test("A falling market uses the newest depth sample, not the quartile of old hig
     eq(learned.falling, true)
     eq(learned.drift, true)
     -- While falling or drifting the buy limit only goes down.
-    f.mode.db.liveLimit, f.mode.db.learnPercent = true, 60
+    f.mode.db.learnPercent = 60
     f.mode.db.watchItems[id].maxPrice = 20
     f.mode:ApplyLiveLimit(id, learned, 50)
     eq(f.mode.db.watchItems[id].maxPrice, 20, "30 would raise the limit")

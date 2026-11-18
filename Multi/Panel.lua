@@ -380,6 +380,14 @@ local function buildPanel(parent)
     target:SetJustifyV("TOP")
     target:SetWordWrap(false)
     local nowPrice = label(panel, "–", "GameFontHighlightLarge", x, -157)
+    -- A thin line under the current price, in the same color as the price, while Leave Bait
+    -- applies at that price (the lowest unit would stay behind), i.e. the price is within the
+    -- limit and at or above the threshold.
+    local leaveLine = panel:CreateTexture(nil, "OVERLAY")
+    leaveLine:SetColorTexture(1, 1, 1, 1)
+    leaveLine:SetHeight(1)
+    leaveLine:SetPoint("TOPLEFT", nowPrice, "BOTTOMLEFT", 0, -1)
+    leaveLine:Hide()
     -- Current price as a share of the learned normal price (80% = 20% below normal).
     local priceRatio = label(panel, "", "GameFontHighlightLarge", x + 132, -157)
     local refresh = label(panel, "Refresh: –", "GameFontHighlightSmall", x + 240, -161)
@@ -442,25 +450,11 @@ local function buildPanel(parent)
     end
     limits()
 
-    local liveLimit = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    liveLimit:SetPoint("TOPLEFT", x + 238, -36)
-    liveLimit:SetSize(20, 20)
-    liveLimit:SetChecked(BW.db.liveLimit == true)
-    local liveLimitLabel = label(panel, "Limit live", "GameFontHighlightSmall", 0, 0)
-    liveLimitLabel:ClearAllPoints()
-    liveLimitLabel:SetPoint("LEFT", liveLimit, "RIGHT", 2, 0)
-    liveLimit:SetScript("OnClick", function(self) BW:SetLiveLimit(self:GetChecked()) end)
-    liveLimit:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Limit live")
-        GameTooltip:AddLine("While watching, every live update of an item's normal price also sets its max buy price to the Max buy % (field in the learning row) of that normal price, for all watched items.", 1, 1, 1, true)
-        GameTooltip:AddLine("Off: limits only change through Start learning or by hand. Press STOP before changing this option.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    liveLimit:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
+    -- "Limit live" is no longer an option: while watching, every live update of an item's normal
+    -- price always sets its max buy price to the Max buy % of that normal price (Multi/Depth.lua).
+    -- Night anchor and Direct buy sit side by side in the top row.
     local anchor = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    anchor:SetPoint("TOPLEFT", x + 238, -56)
+    anchor:SetPoint("TOPLEFT", x + 238, -36)
     anchor:SetSize(20, 20)
     anchor:SetChecked(BW.db.anchorOn == true)
     local anchorLabel = label(panel, "Night anchor", "GameFontHighlightSmall", 0, 0)
@@ -484,7 +478,7 @@ local function buildPanel(parent)
         GameTooltip:AddLine("Buys straight from the multi-item scan, without loading the item's listings first. That saves one auction house message (about half a second) per purchase.", 1, 1, 1, true)
         GameTooltip:AddLine("The quantity is learned per item: from the units under the limit seen whenever listings are loaded, and from your Direct buys (more after a cheap buy, half after a quote above the limit). Never more than listed or than the budget allows at the limit price. Kept through Reset and learning runs.", 1, 1, 1, true)
         GameTooltip:AddLine("The auction house fills from the cheapest units and quotes the total; the purchase is confirmed when the average unit price is within the buy limit. Single units may cost more than the limit.", 1, 1, 1, true)
-        GameTooltip:AddLine("Not used with Leave Bait or while an own listing of the item is up (then the listings are loaded as usual). The purchase statistics show it as its own row.", 1, 0.82, 0, true)
+        GameTooltip:AddLine("Not used when Leave Bait applies to the purchase or while an own listing of the item is up (then the listings are loaded as usual). The purchase statistics show it as its own row.", 1, 0.82, 0, true)
         local lines, total = BW:DirectQtySummary(12)
         if total > 0 then
             GameTooltip:AddLine(" ")
@@ -505,21 +499,27 @@ local function buildPanel(parent)
     directBuy:SetScript("OnEnter", directBuyTooltip)
     directBuy:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    local bait = CreateFrame("CheckButton", nil, watchSettings, "UICheckButtonTemplate")
-    bait:SetPoint("TOPLEFT", x, -72)
-    bait:SetSize(20, 20)
-    bait:SetChecked(BW.db.leaveBait == true)
-    local baitLabel = label(watchSettings, "Leave Bait", "GameFontHighlight", 0, 0)
-    baitLabel:ClearAllPoints()
-    baitLabel:SetPoint("LEFT", bait, "RIGHT", 3, 0)
-    bait:SetScript("OnClick", function(self) BW:SetLeaveBait(self:GetChecked()) end)
-    bait:SetScript("OnEnter", function(self)
+    -- Leave Bait is a threshold, not a checkbox: from which price (in % of the learned normal
+    -- price) on one unit is left at the lowest price. 0 = always, 100 = never.
+    label(watchSettings, "Leave Bait", "GameFontHighlight", x, -76)
+    local leaveFrom = edit(watchSettings, 34, x + 72, -70, 3)
+    label(watchSettings, "%", "GameFontNormalSmall", x + 110, -76)
+    leaveFrom:SetNumeric(true)
+    leaveFrom:SetJustifyH("CENTER")
+    leaveFrom:SetText(tostring(BW:LeaveBaitThreshold()))
+    leaveFrom:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Leave Bait")
-        GameTooltip:AddLine("Leaves one item at the lowest price. For indivisible stacks, leaves the cheapest auction.", 1, 1, 1, true)
+        GameTooltip:AddLine("Leave Bait from N % of the normal price")
+        GameTooltip:AddLine("Leaves one item at the lowest price when that lowest price is at or above this percentage of the item's learned normal price, i.e. when the margin is small. Below it everything is bought. For indivisible stacks, leaves the cheapest auction.", 1, 1, 1, true)
+        GameTooltip:AddLine("0 = always leave a bait, 100 = never. Items without a learned normal price are bought completely. A thin line under the current price (same color as the price) shows when a unit stays behind at that price.", 1, 0.82, 0, true)
         GameTooltip:Show()
     end)
-    bait:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    leaveFrom:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    leaveFrom:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then BW:SetLeaveBaitFrom(self:GetText()) end
+    end)
+    leaveFrom:SetScript("OnEditFocusLost", function(self) self:SetText(tostring(BW:LeaveBaitThreshold())) end)
+    leaveFrom:SetScript("OnEnterPressed", leaveFrom.ClearFocus)
 
 
     -- Auto-bait row: checkbox, baits per minute (1-10) and bait price as a percent
@@ -598,7 +598,7 @@ local function buildPanel(parent)
         GameTooltip:AddLine("Each auto-bait is posted at this percentage of the item's learned normal price.", 1, 1, 1, true)
         local count, names = BW:BaitAboveLimitCount()
         if count > 0 then
-            GameTooltip:AddLine(("Warning: for %d watched item(s) this is above their current max buy price, so you would not buy your own bait. The limits are per item (older learning or manual values); Start learning or Limit live sets them all to Max buy %%."):format(count), 1, 0.35, 0.3, true)
+            GameTooltip:AddLine(("Warning: for %d watched item(s) this is above their current max buy price, so you would not buy your own bait. The limits are per item (older learning or manual values); Start learning or the live limits set them all to Max buy %%."):format(count), 1, 0.35, 0.3, true)
             for _, name in ipairs(names) do GameTooltip:AddLine("  " .. name, 1, 0.6, 0.55) end
             if count > #names then GameTooltip:AddLine(("  … and %d more"):format(count - #names), 1, 0.6, 0.55) end
         end
@@ -617,7 +617,7 @@ local function buildPanel(parent)
     learnPercent:SetNumeric(true)
     learnPercent:SetText(tostring(BW.db.learnPercent or 60))
     learnPercent:SetScript("OnEnterPressed", learnPercent.ClearFocus)
-    -- The field is the single Max buy % for learning and for Limit live.
+    -- The field is the single Max buy % for learning and for the live limits.
     learnPercent:SetScript("OnTextChanged", function(self, userInput)
         local value = tonumber(self:GetText())
         if userInput and value and value >= 1 and value <= 100 then BW.db.learnPercent = value end
@@ -625,7 +625,7 @@ local function buildPanel(parent)
     learnPercent:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Max buy price in % of the Learned normal price")
-        GameTooltip:AddLine("Start learning sets each item's max buy price to this percentage of its learned normal price (median of the lowest listing prices). With Limit live the same percentage is applied on every live update.", 1, 1, 1, true)
+        GameTooltip:AddLine("Start learning sets each item's max buy price to this percentage of its learned normal price (median of the lowest listing prices). While watching, the same percentage is applied on every live update.", 1, 1, 1, true)
         GameTooltip:AddLine("A bait posted above this percentage (see Auto-Bait) would be above your own buy limit and never be bought by you.", 1, 0.82, 0, true)
         GameTooltip:Show()
     end)
@@ -817,9 +817,8 @@ local function buildPanel(parent)
         -- During a learning run STOP is greyed out so it cannot be hit by accident; the run
         -- ends by itself (closing the auction house cancels it).
         stop:SetEnabled(not BW.learning and not not (BW.running or BW.benchmark or BW.finding or confirmingPost or waitingToPost))
-        bait:SetEnabled(not BW.learning and not BW.benchmark and not BW:PurchasePending())
-        liveLimit:SetChecked(BW.db.liveLimit == true)
-        liveLimit:SetEnabled(BW:CanChangeFastQuote())
+        leaveFrom:SetEnabled(not BW.learning and not BW.benchmark and not BW:PurchasePending())
+        if not leaveFrom:HasFocus() then leaveFrom:SetText(tostring(BW:LeaveBaitThreshold())) end
         anchor:SetChecked(BW.db.anchorOn == true)
         directBuy:SetChecked(BW.db.browseBuy == true)
         directBuy:SetEnabled(not BW.benchmark and not BW:PurchasePending())
@@ -860,6 +859,15 @@ local function buildPanel(parent)
             nowPrice:SetTextColor(0.38, 0.92, 0.50)
         else
             nowPrice:SetTextColor(1, 1, 1)
+        end
+        if BW.current and BW.maxPrice and BW.target and BW.current <= BW.maxPrice
+            and BW:LeaveBaitFor(BW.target.id, BW.current) then
+            local r, g, b = nowPrice:GetTextColor()
+            leaveLine:SetColorTexture(r or 1, g or 1, b or 1, 1)
+            leaveLine:SetWidth(math.max(1, nowPrice:GetStringWidth()))
+            leaveLine:Show()
+        else
+            leaveLine:Hide()
         end
         local normal = learned and learned.normalPrice
         if BW.current and normal and normal > 0 then

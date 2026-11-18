@@ -27,7 +27,7 @@ Everything that buys or posts needs a real input from you (a click or a mouse-wh
 ## The buying limit
 
 - **Limit = normal price × Max buy %.** Example: normal 100c at 70% means "buy up to 70c".
-- With **Limit live** the limits follow the normal price while you watch. Without it a limit only changes when you run a learning run or edit it by hand.
+- The limits always follow the normal price while you watch (Max buy % of it); a manually entered limit is overwritten by the next live update.
 - Per item you can still set a fixed **Max buy** by clicking the item name.
 
 ## What gets bought first
@@ -37,7 +37,7 @@ Every scan checks all watched items. Among the items under their limit the addon
 ## Bait
 
 - A **bait** is one item posted at a low price (a percentage of the normal price, **Bait price**).
-- **Manual:** the Bait button (BuyWheelS) and **Bait now** (BuyWheelM) post one bait. **Leave Bait** leaves one item at the lowest price instead of buying it all.
+- **Manual:** the Bait button (BuyWheelS) and **Bait now** (BuyWheelM) post one bait. **Leave Bait** leaves one item at the lowest price instead of buying it all (BuyWheelM: the **Leave Bait [N] %** field decides per purchase: from N % of the normal price on, i.e. with a small margin; 0 = always, 100 = never).
 - **Auto-Bait** (BuyWheelM) posts baits for you, but only when the market is quiet and a mouse-wheel step is free. At most one own bait per item is up.
 - **Material lasts [N] hours** is the only rate setting: the bait material in your bags is spread over N hours, the rate follows from the stock and the time left. Baits that could not be posted while the market was busy are saved up (about half an hour's worth) and used in the next quiet window.
 - **Bait fingerprint:** every bait is posted at the nearest price that satisfies a fixed rule (from 2s up), so other BuyWheel users can recognize it. In the SellWheel table such offers are violet.

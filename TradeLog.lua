@@ -62,7 +62,7 @@ function Addon:LogPurchase(mode, order)
         mode = mode.short, item = order.name, id = order.itemID, qty = quantity, cost = cost,
         unit = cost / quantity, normal = order.normalPrice,
         limit = order.log and order.log.maxUnit or watched and watched.maxPrice,
-        key = order.tradeKey,
+        key = order.tradeKey, leave = order.leaveBait and true or nil,
     }
     if entry.normal and entry.normal > 0 then entry.pct = entry.unit / entry.normal * 100 end
     if learned then

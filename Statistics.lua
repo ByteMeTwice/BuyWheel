@@ -12,7 +12,9 @@ end
 
 function Addon:PurchaseStatsKey(mode)
     -- Leave Bait uses detailed listings regardless of the fast-quote toggles.
-    if mode.db.leaveBait then return "leave", "Leave Bait" end
+    -- Multi: Leave Bait is active whenever its threshold is below 100 (the decision itself is per purchase).
+    local leaving = mode.LeaveBaitThreshold and mode:LeaveBaitThreshold() < 100 or (not mode.LeaveBaitThreshold and mode.db.leaveBait)
+    if leaving then return "leave", "Leave Bait" end
     if mode.db.browseBuy and mode == self.Multi then return "direct", "Direct buy" end
     if mode.db.fastQuoteX3 then
         local quantity = mode:FastQuoteQuantity()

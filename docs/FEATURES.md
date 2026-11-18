@@ -21,7 +21,7 @@ What each control does, tab by tab. The three tabs sit next to the native auctio
 - **Bait sell price:** the price of a manual bait (gold, silver, copper). The nearest price that carries the bait fingerprint is posted.
 - **Bait button:** posts one bait item. If the AH is busy, the first click reserves the slot and the next click or wheel step posts it. The number above the button is the seconds since the bait was confirmed; it turns green when the sale was recognized.
 - **Repeat bait:** after a matching sale, the next wheel step posts a new bait before buying resumes.
-- **Leave Bait:** leaves one item at the lowest price instead of buying everything.
+- **Leave Bait from N %** (BWM): leaves one item at the lowest price when that price is at or above N % of the learned normal price (small margin); below it everything is bought. 0 = always, 100 = never.
 - **Buy Bait (x1):** requests a server quote for one item directly from the browse price, skipping the detailed listing query.
 - **Buy Bait + quantity:** the same for a fixed quantity (experimental, replaces x1).
 - **GO / STOP:** start and stop watching.
@@ -42,11 +42,11 @@ What each control does, tab by tab. The three tabs sit next to the native auctio
 - **Start Learning Prices:** measures every favorite (market depth plus lowest prices) and sets all limits. The button shows the progress in percent; the run ends by itself. STOP is locked meanwhile. Nothing is bought.
 - **Reset learned (bottom left):** deletes all learned prices, measurements and the limits derived from them (after a confirmation). Run **Start Learning Prices** again afterwards.
 - **Shared budget:** the total gold for the run (whole gold).
-- **Limit live:** keeps every limit at Max buy % of the current normal price while you watch.
+- **Live limits (always on):** keeps every limit at Max buy % of the current normal price while you watch.
 - **Depth measurements while watching:** one per minute, automatically, for the item with the oldest measurement (never during a purchase, bait or offer).
 
 ### Bait
-- **Leave Bait:** leaves one item at the lowest price.
+- **Leave Bait:** leaves one item at the lowest price (BWM: from N % of the normal price on, see above).
 - **Bait price [N] % of normal:** the price of every auto and manual bait. A warning shows if it is above your own buying limit.
 - **Auto-Bait:** posts a bait of a random watched item from your bags, only while watching, only in a quiet market and only with a free wheel step. At most one own bait per item.
 - **Material lasts [N] hours:** spreads the bait material in your bags over N hours (default 8, 0 = no limit).

@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: BuyWheel
 ## Notes: Auction watching, price learning with market depth and SellWheel selling with a price list.
-## Version: 0.9.19
+## Version: 0.9.20
 ## SavedVariablesPerCharacter: BuyWheelDB
 
 Core.lua
@@ -16,6 +16,7 @@ Multi/Market.lua
 Multi/Multi.lua
 Multi/Learning.lua
 Multi/Depth.lua
+Multi/LeaveBait.lua
 Multi/DirectQty.lua
 Multi/Panel.lua
 Sell/Market.lua

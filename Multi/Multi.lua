@@ -68,7 +68,8 @@ function BW:ChooseWatch(rows)
         local entry = self:WatchEntry(row.itemKey)
         local info = AH.GetItemKeyInfo(row.itemKey)
         local price = row.minPrice or 0
-        local quantity = info and info.isCommodity and self.db.fastQuoteX3 and not self.db.leaveBait
+        local quantity = info and info.isCommodity and self.db.fastQuoteX3
+            and not self:LeaveBaitFor(self:WatchID(row.itemKey), price)
             and self:FastQuoteQuantity() or 1
         if entry and entry.enabled and info and info.itemName and price > 0
             and price <= (entry.maxPrice or 0) and price * quantity <= room

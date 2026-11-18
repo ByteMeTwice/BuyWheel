@@ -31,8 +31,8 @@ local learningDepthBurst, learningDepthGap = 8, 0
 local learningProbeTarget, learningMaxSeconds = 6, 30 * 60
 
 -- Consume complete batch replies already obtained by normal watching. These
--- observations never send queries. They update the normal price and, only when
--- db.liveLimit is enabled, the item's buy limit (percent of the normal price).
+-- observations never send queries. They update the normal price and the item's
+-- buy limit (percent of the normal price, see ApplyLiveLimit).
 function BW:ObserveNormalPrices(rows)
     if not self.running or self.learning or self.benchmark then return end
     local now = GetTime()

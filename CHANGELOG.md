@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.20 · 2026-11-18
+
+- **BWM: Leave Bait is now a threshold instead of a checkbox** (`Multi/LeaveBait.lua`): "Leave Bait [N] %". When the lowest listed price of an item is at or above N % of its learned normal price (small margin), one unit is left at that price; below N % (big margin) everything is bought. 0 = always (the old checked box), 100 = never (the old unchecked box, default); the old setting migrates automatically. Items without a learned normal price are bought completely for N between 1 and 99. The decision is made per purchase, so Direct buy and the fast quote paths only run when no bait is left. Trade log entries carry `leave = true` for such purchases. A thin line under the current price (selected item, same color as the price) marks the prices at which a unit is left behind. BuyWheelS keeps its checkbox.
+- **BWM: "Limit live" is gone.** The live limits are always on: while watching, every update of an item's normal price sets its max buy price to the Max buy % (the held limit during a drifting or falling market still applies). The checkbox row now shows **Night anchor** and **Direct buy** side by side.
+
 ## 0.9.19 · 2026-11-18
 
 - **Direct buy (BWM, test checkbox next to Limit live, off by default):** buys straight from the multi-item scan without loading the item's listings first, one throttled AH message (about 0.5 s) less per purchase. The AH fills from the cheapest units and the quote is confirmed when its average unit price is within the buy limit (single units may cost more). Not used with Leave Bait or while an own/account listing of the item is up. Purchase statistics get a row "Direct buy"; diagnostics carry `directBuy`, `directBuyQuantity`, `directQtyAfter` and the offer source `browse_direct_avg`.
