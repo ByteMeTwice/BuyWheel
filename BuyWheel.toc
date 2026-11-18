@@ -16,7 +16,6 @@ Multi/Market.lua
 Multi/Multi.lua
 Multi/Learning.lua
 Multi/Depth.lua
-Multi/DirectQty.lua
 Multi/Panel.lua
 Sell/Market.lua
 Sell/Selling.lua
