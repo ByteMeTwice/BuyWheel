@@ -13,6 +13,7 @@ end
 function Addon:PurchaseStatsKey(mode)
     -- Leave Bait uses detailed listings regardless of the fast-quote toggles.
     if mode.db.leaveBait then return "leave", "Leave Bait" end
+    if mode.db.browseBuy and mode == self.Multi then return "direct", "Direct buy" end
     if mode.db.fastQuoteX3 then
         local quantity = mode:FastQuoteQuantity()
         return "fixed:" .. quantity, "Buy Bait x" .. quantity .. " fixed"

@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.19 · 2026-11-18
+
+- **Direct buy (BWM, test checkbox next to Limit live, off by default):** buys straight from the multi-item scan without loading the item's listings first, one throttled AH message (about 0.5 s) less per purchase. The AH fills from the cheapest units and the quote is confirmed when its average unit price is within the buy limit (single units may cost more). Not used with Leave Bait or while an own/account listing of the item is up. Purchase statistics get a row "Direct buy"; diagnostics carry `directBuy`, `directBuyQuantity`, `directQtyAfter` and the offer source `browse_direct_avg`.
+- **Learned Direct buy quantity per item** (`Multi/DirectQty.lua`, saved in `BuyWheelDB.directQty`, kept through Reset learned, learning runs and the purchase Reset): whenever listings are loaded (normal purchase path, depth probes) the foreign units at or below the buy limit are noted if there are any; the median of the last 20 notes is the base. A confirmed Direct buy at most 90% of the limit on average raises the quantity (x1.5), a quote with an average above the limit halves it; never below half the base, never above 500, always capped by the listed units and the budget. Seeded once from the saved purchase diagnostics. The Direct buy tooltip lists the learned quantity of the watched items.
+
 ## 0.9.18 · 2026-11-18
 
 - Fix: prices were marked yellow ("Market moving") far too often since 0.9.17 (16 of 48 items). The falling-market rule fired when the newest depth sample was below the lower quartile by any amount, i.e. on the normal noise of a few percent. It now needs a drop of at least 10% below the quartile (Dense Stone 637 vs 450 still counts); smaller dips stay grey and no longer lock the buy limit.

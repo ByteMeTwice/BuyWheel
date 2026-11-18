@@ -165,7 +165,23 @@ end
 function BW:SetFastQuote(enabled)
     if not self:CanChangeFastQuote() then return end
     self.db.fastQuote = enabled == true
-    if self.db.fastQuote then self.db.fastQuoteX3 = false end
+    if self.db.fastQuote then self.db.fastQuoteX3, self.db.browseBuy = false, false end
+end
+
+-- Direct buy: buy straight from the multi-item browse reply, without the extra listing
+-- query (saves one throttled AH message, about half a second). The AH is asked for N
+-- units, N learned per item (Multi/DirectQty.lua); the commodity purchase fills from the
+-- cheapest units over several price levels and quotes the total. The purchase is confirmed
+-- only when the average unit price of that quote stays within the item's buy limit (single
+-- units may cost more than the limit). Can be switched while watching; the purchase
+-- statistics get a row of their own.
+function BW:SetBrowseBuy(enabled)
+    if purchase or self.benchmark then return end
+    self.db.browseBuy = enabled == true
+    if self.db.browseBuy then self.db.fastQuote, self.db.fastQuoteX3 = false, false end
+    self.offers = nil
+    if self.running then Addon:StartPurchaseStats(self) end
+    self:Pump()
 end
 
 function BW:SetLiveLimit(enabled)
@@ -182,7 +198,7 @@ end
 function BW:SetFastQuoteX3(enabled)
     if not self:CanChangeFastQuote() then return end
     self.db.fastQuoteX3 = enabled == true
-    if self.db.fastQuoteX3 then self.db.fastQuote = false end
+    if self.db.fastQuoteX3 then self.db.fastQuote, self.db.browseBuy = false, false end
 end
 
 -- Keep fastQuoteX3 as the saved toggle for compatibility with existing settings.
@@ -218,7 +234,8 @@ function BW:Offer()
             local quantity = math.min(available, math.floor(room / entry.unit))
             if quantity > 0 and (not entry.fixedQuantity or quantity == entry.fixedQuantity) then
                 return { unit = entry.unit, quantity = quantity, cost = quantity * entry.unit,
-                    fromBrowse = entry.fromBrowse, browseQuantity = entry.browseQuantity }
+                    fromBrowse = entry.fromBrowse, browseQuantity = entry.browseQuantity,
+                    avgLimit = entry.avgLimit }
             end
         end
     end
@@ -862,6 +879,7 @@ function BW:Start(benchmark)
         local log = {
             fastQuote = not not self.db.fastQuote, fastQuoteX3 = not not self.db.fastQuoteX3,
             fastQuoteQuantity = self:FastQuoteQuantity(),
+            browseBuy = not not self.db.browseBuy,
             diagnosticsVersion = 4,
             timestamp = GetServerTime and GetServerTime() or (time and time()),
             item = "Multi-item", watchKeys = self.runWatchKeys, watchLimits = self.runWatchLimits,
@@ -995,7 +1013,29 @@ local function onBrowse(event)
             end
         end
         local quoteQuantity = BW.db.fastQuoteX3 and BW:FastQuoteQuantity() or 1
-        if BW.running and not cycle.preview and not purchase and not BW.db.leaveBait and BW.target.commodity
+        -- Direct buy (see BW:SetBrowseBuy): an offer straight from the browse row. Rows with
+        -- own or account listings keep the normal listing query.
+        local direct = BW.running and not cycle.preview and not purchase and BW.db.browseBuy
+            and not BW.db.leaveBait and BW.target.commodity and match
+            and match.containsOwnerItem == false and not match.containsAccountItem
+            and (match.minPrice or 0) > 0 and match.minPrice <= (BW.maxPrice or 0)
+            and match.minPrice <= buyingRoom() and (match.totalQuantity or 0) >= 1
+        local directQuantity
+        if direct then
+            -- The learned quantity of this item, capped by the listed units and by the room
+            -- for the whole request at the limit price (so an accepted quote fits the budget).
+            directQuantity = math.min(BW:DirectQuantity(BW.target.id), match.totalQuantity,
+                math.floor(buyingRoom() / BW.maxPrice))
+            if directQuantity < 1 then directQuantity = 1 end
+        end
+        if direct then
+            recordPrice(match.minPrice, match.totalQuantity == 1 and 1 or nil)
+            BW.offers = { { unit = match.minPrice, quantity = directQuantity, fixedQuantity = directQuantity,
+                fromBrowse = "browse_direct_avg", browseQuantity = match.totalQuantity, avgLimit = true } }
+            cycle.done, cycle.answeredAt = true, BW.updatedAt
+            scanSample("directBuyOffers")
+            holdOffer()
+        elseif BW.running and not cycle.preview and not purchase and not BW.db.leaveBait and BW.target.commodity
             and match and ((BW.db.fastQuoteX3 and (match.totalQuantity or 0) >= quoteQuantity)
                 or (not BW.db.fastQuoteX3 and (match.totalQuantity == 1 or (BW.db.fastQuote and (match.totalQuantity or 0) > 1))))
             and match.containsOwnerItem == false
@@ -1047,6 +1087,10 @@ local function onListings(event, key)
             clearRequest()
             if job.abandoned then BW:Pump() return end
             local price = BW:DepthPriceFromListings(job.itemID)
+            if not job.learning then
+                local watched = BW.db.watchItems and BW.db.watchItems[job.id]
+                BW:NoteDirectUnits(job.id, job.itemID, watched and watched.maxPrice)
+            end
             if job.learning then
                 BW:LearningDepthReply(job.learning, job.id, price)
             elseif price and not BW:OwnActionRecent(job.id) then
@@ -1074,7 +1118,11 @@ local function onListings(event, key)
     end
     local lowest, offers, lowestQuantity = collectOffers(BW.target)
     -- The listings are loaded anyway: a free depth sample (at most once a minute per item).
-    if job.commodity then BW:SampleDepthFromListings(job.itemID, BW.target.id) end
+    if job.commodity then
+        BW:SampleDepthFromListings(job.itemID, BW.target.id)
+        -- Units under the limit right now: the base of the learned Direct buy quantity.
+        if BW.running and not cycle.preview then BW:NoteDirectUnits(BW.target.id, job.itemID, BW.maxPrice) end
+    end
     scanSample("listingReplies", milliseconds(GetTime() - job.started))
     listingReply = {
         event = event, ms = milliseconds(GetTime() - job.started), at = GetTime(), full = full,
@@ -1119,6 +1167,10 @@ local function finishPurchase(success, message, missed)
     Addon:RecordPurchaseStats(BW, bought, success, missed)
     if success then
         BW:NoteOwnAction(bought.tradeKey)
+        if bought.avgLimit and bought.quantity > 0 then
+            BW:DirectQtyConfirmed(bought.tradeKey, bought.quantity, bought.cost / bought.quantity, bought.log.maxUnit)
+            bought.log.directQtyAfter = BW:DirectQuantity(bought.tradeKey)
+        end
         BW.spent = BW.spent + bought.cost
         BW.purchaseSpent = BW.purchaseSpent + bought.cost
         BW.unitsBought = BW.unitsBought + bought.quantity
@@ -1198,7 +1250,7 @@ function BW:Buy()
         auctionID = offer.auctionID, itemID = self.target.key.itemID, quantity = offer.quantity,
         cost = offer.cost, unit = offer.unit, stage = offer.auctionID and "sent" or "quote",
         name = self.target.name, leaveBait = self.db.leaveBait,
-        tradeKey = self.target.id,
+        tradeKey = self.target.id, avgLimit = offer.avgLimit,
         normalPrice = Addon:LearnedNormalPrice(self, self.target.id),
     }
     local details = not offer.fromBrowse and listingReply
@@ -1226,6 +1278,8 @@ function BW:Buy()
         offerSource = offer.fromBrowse or "listings",
         fastQuote = not not self.db.fastQuote, fastQuoteX3 = not not self.db.fastQuoteX3,
         fastQuoteQuantity = self:FastQuoteQuantity(),
+        directBuy = offer.avgLimit and true or nil,
+        directBuyQuantity = offer.avgLimit and offer.quantity or nil,
         browseQuantity = offer.browseQuantity,
         priceAgeMs = self.updatedAt and milliseconds(order.started - self.updatedAt),
         listingAgeMs = details and milliseconds(order.started - details.at) or nil,
@@ -1905,10 +1959,18 @@ local function onQuote(unit, total)
     order.log.quotedUnit, order.log.quotedTotal = logValue(unit), logValue(total)
     if not BW.running or not unit or not total or unit <= 0 or total <= 0
         or unit > (BW.maxPrice or 0) or total > (BW.maxPrice or 0) * order.quantity
-        or total > order.cost or total > buyingRoom()
+        -- Direct buy accepts any quote whose average unit price is within the limit
+        -- (checked above); every other order must not cost more than the listings showed.
+        or (not order.avgLimit and total > order.cost) or total > buyingRoom()
         or (order.leaveBait and (unit ~= order.unit or total ~= order.cost)) then
         local priceIncreased = BW.running and unit and total and unit > 0 and total > 0
             and (unit > order.unit or total > order.cost)
+        -- Direct buy asked for more units than lie under the limit: learn a smaller quantity.
+        if order.avgLimit and unit and total and unit > 0 and total > 0
+            and (unit > (BW.maxPrice or 0) or total > (BW.maxPrice or 0) * order.quantity) then
+            BW:DirectQtyRejected(order.tradeKey, order.quantity)
+            order.log.directQtyAfter = BW:DirectQuantity(order.tradeKey)
+        end
         order.stage = "cancel"
         logPurchaseEvent(order, "quote_rejected")
         sendPurchase(AH.CancelCommoditiesPurchase)

@@ -476,6 +476,35 @@ local function buildPanel(parent)
     end)
     anchor:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Direct buy (test option): buy from the multi-item browse reply without the listing
+    -- query; the quantity is learned per item (Multi/DirectQty.lua).
+    local function directBuyTooltip(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Direct buy")
+        GameTooltip:AddLine("Buys straight from the multi-item scan, without loading the item's listings first. That saves one auction house message (about half a second) per purchase.", 1, 1, 1, true)
+        GameTooltip:AddLine("The quantity is learned per item: from the units under the limit seen whenever listings are loaded, and from your Direct buys (more after a cheap buy, half after a quote above the limit). Never more than listed or than the budget allows at the limit price. Kept through Reset and learning runs.", 1, 1, 1, true)
+        GameTooltip:AddLine("The auction house fills from the cheapest units and quotes the total; the purchase is confirmed when the average unit price is within the buy limit. Single units may cost more than the limit.", 1, 1, 1, true)
+        GameTooltip:AddLine("Not used with Leave Bait or while an own listing of the item is up (then the listings are loaded as usual). The purchase statistics show it as its own row.", 1, 0.82, 0, true)
+        local lines, total = BW:DirectQtySummary(12)
+        if total > 0 then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("Learned quantity of the watched items:")
+            for _, line in ipairs(lines) do GameTooltip:AddLine(line, 0.8, 0.8, 0.8) end
+            if total > #lines then GameTooltip:AddLine(("… and %d more"):format(total - #lines), 0.8, 0.8, 0.8) end
+        end
+        GameTooltip:Show()
+    end
+    local directBuy = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    directBuy:SetPoint("TOPLEFT", x + 340, -36)
+    directBuy:SetSize(20, 20)
+    directBuy:SetChecked(BW.db.browseBuy == true)
+    local directBuyLabel = label(panel, "Direct buy", "GameFontHighlightSmall", 0, 0)
+    directBuyLabel:ClearAllPoints()
+    directBuyLabel:SetPoint("LEFT", directBuy, "RIGHT", 2, 0)
+    directBuy:SetScript("OnClick", function(self) BW:SetBrowseBuy(self:GetChecked()) end)
+    directBuy:SetScript("OnEnter", directBuyTooltip)
+    directBuy:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     local bait = CreateFrame("CheckButton", nil, watchSettings, "UICheckButtonTemplate")
     bait:SetPoint("TOPLEFT", x, -72)
     bait:SetSize(20, 20)
@@ -792,6 +821,8 @@ local function buildPanel(parent)
         liveLimit:SetChecked(BW.db.liveLimit == true)
         liveLimit:SetEnabled(BW:CanChangeFastQuote())
         anchor:SetChecked(BW.db.anchorOn == true)
+        directBuy:SetChecked(BW.db.browseBuy == true)
+        directBuy:SetEnabled(not BW.benchmark and not BW:PurchasePending())
         autoBait:SetChecked(BW.db.autoBait == true)
         do
             local posted, _, _, units = Addon:RobSummary(BW)
