@@ -246,6 +246,10 @@ function BW:FinishLearning(cancelled)
                     learned.ratioList = { learned.ratio }
                 end
             end
+            -- Keep the long-term price memory across learning runs and cap the new value by it.
+            local previous = self.db.learnedPrices[id]
+            learned.hist = previous and previous.hist
+            result.normalPrice = self:ApplyLongTermAnchor(learned, result.normalPrice, minNormal)
             result.buyLimit = math.max(1, math.floor(result.normalPrice * session.percent / 100))
             local entry = self.db.watchItems[id] or { key = item.key, enabled = false }
             result.previousLimit = entry.maxPrice

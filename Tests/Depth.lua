@@ -135,4 +135,49 @@ test("Depth probes run once a minute (fixed) and are scheduled around that", fun
     eq(f.mode:DepthDue(), true)
 end)
 
+test("A falling market uses the newest depth sample, not the quartile of old higher ones", function()
+    local f = fixture()
+    local id = "765:5:0:0"
+    for _, price in ipairs({ 100, 90, 80, 50 }) do
+        f.mode:RecordDepth(id, price)
+        f.server = f.server + 600
+    end
+    local learned = f.mode.db.learnedPrices[id]
+    eq(learned.depth, 50, "the quartile would be 72.5, the newest sample is 50")
+    eq(learned.normalPrice, 50)
+    eq(learned.falling, true)
+    eq(learned.drift, true)
+    -- While falling or drifting the buy limit only goes down.
+    f.mode.db.liveLimit, f.mode.db.learnPercent = true, 60
+    f.mode.db.watchItems[id].maxPrice = 20
+    f.mode:ApplyLiveLimit(id, learned, 50)
+    eq(f.mode.db.watchItems[id].maxPrice, 20, "30 would raise the limit")
+    f.mode:ApplyLiveLimit(id, learned, 20)
+    eq(f.mode.db.watchItems[id].maxPrice, 12, "a lower value is applied")
+end)
+
+test("The long-term median caps a spike at 25% above it", function()
+    local f = fixture()
+    local plain = {}
+    f.mode.db.anchorOn = true
+    eq(f.mode:NormalFromMeasurements(plain, 100), 100, "no anchor without notes")
+    for _ = 1, 8 do
+        f.server = f.server + 1800
+        eq(f.mode:NormalFromMeasurements(plain, 100), 100)
+    end
+    eq(plain.anchor, 100)
+    eq(plain.anchored, nil)
+    -- A spike to 200 is valued at 125.
+    eq(f.mode:NormalFromMeasurements(plain, 200), 125)
+    eq(plain.anchored, true)
+    -- Inside the cap nothing changes.
+    eq(f.mode:NormalFromMeasurements(plain, 110), 110)
+    eq(plain.anchored, nil)
+    -- Checkbox off: still noted, but nothing is capped.
+    f.mode.db.anchorOn = false
+    eq(f.mode:NormalFromMeasurements(plain, 200), 200)
+    eq(plain.anchored, nil)
+    eq(plain.anchor, 100)
+end)
+
 print("PASS " .. count .. " Depth scenarios")

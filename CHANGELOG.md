@@ -2,6 +2,12 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.17 · 2026-11-18
+
+- **Permanent trade log** (`TradeLog.lua`, saved in `BuyWheelDB.tradeLog`, up to 20000 entries, not touched by the statistics Reset): every confirmed purchase (with unit price, learned normal price, buy limit and the learned state: source, drift, falling, capped), every posted listing (bait or SellWheel, with quantity), every sale message and every sale/purchase invoice mail (price, deposit, AH fee). `/bwlog [hours]` prints a summary per item (bought, average price, posted, sales, invoice net), `/bwlog last [n]` the newest lines.
+- **Normal price in a falling market:** the lower quartile of 90 minutes of depth samples still contained old, higher prices (Dense Stone: samples 1198 ... 450 gave a normal price of 637 and a buy limit of 446). The newest depth sample now caps the depth price; such a value counts as drift, and while the market drifts or falls the buy limit can only go down.
+- **Long-term anchor, switched by the new checkbox "Night anchor" (BWM, next to Limit live, off by default):** the lowest price is noted every 30 minutes for 7 days (always, kept across learning runs). With the checkbox on and 6 notes over at least 2 hours, a normal price may lie at most 25% above their median, so a spike of a few hours (cheap units bought out, thin top of the book) can no longer raise the buy limit. The item shows "Capped by 7-day median" in the panel; the buy limit does not rise while capped. The checkbox can be switched while watching.
+
 ## 0.9.16 · 2026-11-17
 
 - BWM: the **Refresh** line also shows the world **Ping** (`Refresh: 1919 ms  ·  Ping 60 ms`), and every purchase diagnostic stores `homePingMs` / `worldPingMs`. Refresh is the time between AH replies, which is limited by the game's AH message throttle and your connection; the ping makes visible which of the two is slow.

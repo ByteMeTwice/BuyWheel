@@ -54,8 +54,9 @@ end)
 local function serverNow() return GetServerTime and GetServerTime() or time() end
 local durationSeconds = { [1] = 2 * 3600, [2] = 8 * 3600, [3] = 24 * 3600 }
 
-function Addon:NoteOwnPost(itemID, unitPrice, duration)
+function Addon:NoteOwnPost(itemID, unitPrice, duration, quantity)
     if not itemID or type(unitPrice) ~= "number" then return end
+    if self.LogPost then pcall(self.LogPost, self, itemID, unitPrice, duration, quantity) end
     self:GetModeDB("multi") -- makes sure BuyWheelDB exists in its current layout
     local posts = BuyWheelDB.ownPosts
     if type(posts) ~= "table" then posts = {}; BuyWheelDB.ownPosts = posts end

@@ -173,6 +173,12 @@ function BW:SetLiveLimit(enabled)
     self.db.liveLimit = enabled == true
 end
 
+-- Night anchor: caps the normal price at 25% above the 7-day median (see Multi/Depth.lua).
+-- Can be switched while watching; it takes effect with the next price update.
+function BW:SetAnchorOn(enabled)
+    self.db.anchorOn = enabled == true
+end
+
 function BW:SetFastQuoteX3(enabled)
     if not self:CanChangeFastQuote() then return end
     self.db.fastQuoteX3 = enabled == true

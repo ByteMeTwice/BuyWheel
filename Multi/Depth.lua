@@ -111,6 +111,12 @@ function BW:ApplyLiveLimit(id, learned, normal)
     if not watched then return end
     local percent = tonumber(self.db.learnPercent) or 60
     local limit = math.max(1, math.floor(normal * percent / 100))
+    -- While the market is moving (drift, falling prices) or the value had to be capped by the
+    -- long-term median, the buy limit may only go down, never up.
+    local current = tonumber(watched.maxPrice)
+    if (learned.drift or learned.falling or learned.anchored) and current and current > 0 and limit > current then
+        limit = current
+    end
     watched.maxPrice, learned.maxPrice, learned.percent = limit, limit, percent
 end
 
@@ -128,19 +134,72 @@ end
 function BW:NormalFromMeasurements(learned, minMedian)
     local depth = self:LowerQuartile(freshDepths(learned))
     learned.depth = depth
-    learned.drift = nil
+    learned.drift, learned.falling = nil, nil
+    local result
     if depth then
+        -- In a falling market the lower quartile of 90 minutes of samples still contains the
+        -- old, higher prices (Dense Stone: 1198 ... 450 gave a "normal" of 637). The newest
+        -- sample is the truth then: never value an item above what the market shows now.
+        local list = learned.depthList
+        local newest = list and list[#list] and list[#list].price
+        if newest and newest < depth then
+            depth = newest
+            learned.depth, learned.falling, learned.drift = depth, true, true
+        end
         local normal = depth
         if minMedian and learned.ratio then
             local moved = minMedian * learned.ratio
             normal = math.max(depth * ratioLow, math.min(depth * ratioHigh, moved))
-            learned.drift = moved < depth * ratioLow or moved > depth * ratioHigh or nil
+            learned.drift = learned.drift or moved < depth * ratioLow or moved > depth * ratioHigh or nil
         end
         learned.source = "depth"
-        return self:CapNormal(normal, minMedian)
+        result = self:CapNormal(normal, minMedian)
+    else
+        learned.source = "min"
+        result = minMedian
     end
-    learned.source = "min"
-    return minMedian
+    return self:ApplyLongTermAnchor(learned, result, minMedian or depth)
+end
+
+-- Long-term price memory. The lowest price (what you really pay) is noted every 30 minutes
+-- for a week. A market can spike for hours (thin top of the book, cheap units bought out)
+-- and the depth and minimum measurements then all agree on the spike. The median of the week
+-- does not: a normal price may lie at most 25% above it. Until there are 6 notes spread over
+-- 2 hours there is no anchor and nothing is capped.
+local histEvery, histKeep = 30 * 60, 7 * 24 * 3600
+local histMinNotes, histMinSpan = 6, 2 * 3600
+local anchorCap = 1.25
+
+function BW:NoteHistory(learned, price)
+    if type(price) ~= "number" or price <= 0 then return end
+    local now = serverNow()
+    local hist = learned.hist
+    if type(hist) ~= "table" then hist = {}; learned.hist = hist end
+    local last = hist[#hist]
+    if not last or now - last.at >= histEvery then hist[#hist + 1] = { at = now, price = price } end
+    while hist[1] and now - hist[1].at > histKeep do table.remove(hist, 1) end
+end
+
+function BW:LongTermAnchor(learned)
+    local hist = learned.hist
+    if type(hist) ~= "table" or #hist < histMinNotes or hist[#hist].at - hist[1].at < histMinSpan then return end
+    local prices = {}
+    for i, note in ipairs(hist) do prices[i] = note.price end
+    return median(prices)
+end
+
+-- Notes the current price (always, so the history is ready when the anchor is switched on)
+-- and, only with the "Night anchor" checkbox (db.anchorOn), caps `normal` at 25% above the
+-- long-term median.
+function BW:ApplyLongTermAnchor(learned, normal, noted)
+    self:NoteHistory(learned, noted)
+    local anchor = self:LongTermAnchor(learned)
+    learned.anchor, learned.anchored = anchor, nil
+    if normal and anchor and self.db and self.db.anchorOn and normal > anchor * anchorCap then
+        learned.anchored = true
+        return anchor * anchorCap
+    end
+    return normal
 end
 
 -- A depth sample for a watched item: from a listing, SellWheel or a probe.
@@ -193,6 +252,7 @@ function BW:NormalInfo(id)
     -- nothing is measured, so only values from hours ago count as old.
     local staleAfter = self.running and 600 or 6 * 3600
     if age > staleAfter then return "|cffff6464old · " .. text .. "|r", "old", age end
+    if learned.anchored then return "|cffffd100Capped by 7-day median · " .. text .. "|r", "drift", age end
     if learned.source == "depth" and depthAge and depthAge <= depthWindow then
         if learned.drift then return "|cffffd100Market moving · " .. text .. "|r", "drift", age end
         return "|cff60eb80Depth · " .. text .. "|r", "ok", age

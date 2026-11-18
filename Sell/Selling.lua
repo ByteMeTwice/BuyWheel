@@ -294,7 +294,7 @@ function SW:FinishSellPost(success, message)
     job.log.finished = GetTime()
     if success then
         local entry = job.plan.entries[job.index]
-        Addon:NoteOwnPost(job.plan.item.key.itemID, job.price, job.duration)
+        Addon:NoteOwnPost(job.plan.item.key.itemID, job.price, job.duration, job.quantity)
         self.lastSoldID = job.plan.item.id
         self:RecordPosted(job)
         if Addon.Multi.NoteOwnAction then Addon.Multi:NoteOwnAction(job.plan.item.id) end

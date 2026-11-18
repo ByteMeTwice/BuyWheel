@@ -72,6 +72,8 @@ function Addon:RecordPurchaseStats(mode, order, success, missed)
         else item.missed = item.missed + order.quantity end
     end
     if success then
+        -- Permanent log first: it must never be lost to a later error.
+        pcall(self.LogPurchase, self, mode, order)
         if mode == self.Multi and order.tradeKey then self:RobPurchase(mode, order) end
         row.units, row.buys = row.units + order.quantity, row.buys + 1
         row.cost = row.cost + order.cost
