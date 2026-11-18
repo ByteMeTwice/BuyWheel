@@ -156,6 +156,30 @@ test("A falling market uses the newest depth sample, not the quartile of old hig
     eq(f.mode.db.watchItems[id].maxPrice, 12, "a lower value is applied")
 end)
 
+test("Normal noise between depth samples is not a falling market and stays grey", function()
+    -- Real series from the 0.9.17 log: dips of 1 to 8% flagged 16 of 48 items yellow.
+    for _, series in ipairs({ { 266, 270, 258 }, { 224, 224, 222 }, { 2012, 2021, 1909 }, { 110, 100, 99 } }) do
+        local f = fixture()
+        local id = "765:5:0:0"
+        for _, price in ipairs(series) do
+            f.mode:RecordDepth(id, price)
+            f.server = f.server + 60
+        end
+        local learned = f.mode.db.learnedPrices[id]
+        eq(learned.falling, nil, "series ending in " .. series[#series])
+        eq(learned.drift, nil)
+        local _, state = f.mode:NormalInfo(id)
+        eq(state, "ok")
+    end
+    -- A real drop of more than 10% below the quartile still counts.
+    local f = fixture()
+    for _, price in ipairs({ 100, 100, 100, 85 }) do
+        f.mode:RecordDepth("765:5:0:0", price)
+        f.server = f.server + 60
+    end
+    eq(f.mode.db.learnedPrices["765:5:0:0"].falling, true)
+end)
+
 test("The long-term median caps a spike at 25% above it", function()
     local f = fixture()
     local plain = {}

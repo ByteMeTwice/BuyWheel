@@ -19,6 +19,7 @@ local depthWindow = 90 * 60 -- seconds a depth sample counts
 local maxDepthSamples, maxRatios = 12, 8
 local ownQuiet = 30 -- seconds after an own buy or bait in which that item is not measured
 local ratioLow, ratioHigh = 0.7, 1.4
+local fallingRatio = 0.9 -- newest depth sample below 90% of the quartile = falling market
 -- The normal price is a conservative value: it never lies more than 3% above the
 -- median of the lowest prices (what you really pay), and of several depth
 -- measurements the lower quartile is used, not the middle.
@@ -142,7 +143,9 @@ function BW:NormalFromMeasurements(learned, minMedian)
         -- sample is the truth then: never value an item above what the market shows now.
         local list = learned.depthList
         local newest = list and list[#list] and list[#list].price
-        if newest and newest < depth then
+        -- Only a real drop counts (at least 10% below the quartile); the normal noise of a few
+        -- percent between two measurements must neither mark the price as moving nor lock the limit.
+        if newest and newest < depth * fallingRatio then
             depth = newest
             learned.depth, learned.falling, learned.drift = depth, true, true
         end
