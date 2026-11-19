@@ -205,10 +205,68 @@ function Addon:TradeLogLast(count)
     end
 end
 
+-- Evaluation page (tools/BuyWheelLog.html). WoW cannot start a browser or open a file, so a
+-- small window names the two files and the launcher to double-click; the paths can be copied.
+local reportWindow
+function Addon:ShowReportWindow()
+    if not reportWindow then
+        local frame = CreateFrame("Frame", "BuyWheelReportWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        frame:SetSize(560, 236)
+        frame:SetPoint("CENTER")
+        frame:SetFrameStrata("DIALOG")
+        frame:EnableMouse(true)
+        frame:SetMovable(true)
+        frame:RegisterForDrag("LeftButton")
+        frame:SetScript("OnDragStart", frame.StartMoving)
+        frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+        if frame.SetBackdrop then
+            frame:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+                edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", tile = true, tileSize = 32, edgeSize = 32,
+                insets = { left = 11, right = 12, top = 12, bottom = 11 } })
+        end
+        local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        title:SetPoint("TOP", 0, -18)
+        title:SetText("BuyWheel evaluation page")
+        local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+        close:SetPoint("TOPRIGHT", -6, -6)
+        local intro = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        intro:SetPoint("TOPLEFT", 22, -46)
+        intro:SetWidth(516)
+        intro:SetJustifyH("LEFT")
+        intro:SetText("1. Type /reload so WoW writes the current data.".."\n".."2. In your WoW folder, double-click the launcher below. It opens the page in your browser and shows BuyWheel.lua in Explorer; drag that file onto the page (or use Update after the first time).")
+        local function field(y, caption, text)
+            local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            label:SetPoint("TOPLEFT", 22, y)
+            label:SetText(caption)
+            local box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+            box:SetPoint("TOPLEFT", 28, y - 14)
+            box:SetSize(506, 22)
+            box:SetAutoFocus(false)
+            box:SetMaxLetters(400)
+            box:SetText(text)
+            box.fixed = text
+            box:SetCursorPosition(0)
+            box:SetScript("OnEditFocusGained", box.HighlightText)
+            box:SetScript("OnTextChanged", function(self, user) if user then self:SetText(self.fixed) self:HighlightText() end end)
+            box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+            return box
+        end
+        field(-104, "Launcher (double-click):", "Interface\\AddOns\\BuyWheel\\tools\\OpenBuyWheelLog.bat")
+        field(-142, "Evaluation page:", "Interface\\AddOns\\BuyWheel\\tools\\BuyWheelLog.html")
+        local realm = GetRealmName and GetRealmName() or "<Realm>"
+        local name = UnitName and UnitName("player") or "<Character>"
+        field(-180, "Data file (this character):", ("WTF\\Account\\<Account>\\%s\\%s\\SavedVariables\\BuyWheel.lua"):format(realm, name))
+        tinsert(UISpecialFrames, "BuyWheelReportWindow")
+        reportWindow = frame
+    end
+    reportWindow:Show()
+end
+
 SLASH_BWLOG1 = "/bwlog"
 SlashCmdList = SlashCmdList or {}
 SlashCmdList["BWLOG"] = function(arg)
     arg = arg or ""
+    if arg:match("^%s*html%s*$") or arg:match("^%s*report%s*$") then Addon:ShowReportWindow() return end
     local count = arg:match("^last%s*(%d*)$")
     if count then Addon:TradeLogLast(tonumber(count) or 15) return end
     Addon:TradeLogSummary(tonumber(arg) or 24)

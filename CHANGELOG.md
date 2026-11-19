@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.21 · 2026-11-18
+
+- **Evaluation page** `tools/BuyWheelLog.html`: a standalone page (no server, no internet) that reads `BuyWheel.lua` from the saved variables and shows the trade log as KPIs (spend, net sales, profit, profit per hour), charts (spend and sales per hour or day, profit per item, price history per item), a sortable item table, the Leave Bait share and the watch-list items without activity. Time range switch (all, 24/48 h, 7 days, last day), light and dark theme, the covered period is shown at the top. In Chrome or Edge the page remembers the file, so **Update** re-reads it after a /reload.
+- **Launcher and entry points:** `tools/OpenBuyWheelLog.bat` opens the page and shows `BuyWheel.lua` in Explorer. In the game, the **Report** button in the purchase history (BWM) and `/bwlog html` open a small window with the paths (WoW cannot start a browser itself).
+
 ## 0.9.20 · 2026-11-18
 
 - **BWM: Leave Bait is now a threshold instead of a checkbox** (`Multi/LeaveBait.lua`): "Leave Bait [N] %". When the lowest listed price of an item is at or above N % of its learned normal price (small margin), one unit is left at that price; below N % (big margin) everything is bought. 0 = always (the old checked box), 100 = never (the old unchecked box, default); the old setting migrates automatically. Items without a learned normal price are bought completely for N between 1 and 99. The decision is made per purchase, so Direct buy and the fast quote paths only run when no bait is left. Trade log entries carry `leave = true` for such purchases. A thin line under the current price (selected item, same color as the price) marks the prices at which a unit is left behind. BuyWheelS keeps its checkbox.
