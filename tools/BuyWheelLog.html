@@ -224,6 +224,11 @@ details.note summary { cursor: pointer; }
       <div class="small" style="margin-top:12px"><div class="tablewrap"><table id="entries"><thead></thead><tbody></tbody></table></div></div>
     </div>
 
+    <div class="card" style="margin-bottom:12px"><h2>Eigene Baits</h2><div class="hint" id="baitHint"></div><div id="baits"></div>
+      <details class="note"><summary>Wie wird gerechnet?</summary>
+        <p><b>Posts</b> sind Auktionen, die das Addon als Bait eingestellt hat. <b>Bait vs. Ø Kauf</b> vergleicht den Bait-Stückpreis mit deinem durchschnittlichen Kaufpreis dieses Items im Zeitraum (unter 100 % = Bait unter Einkaufspreis).
+        <b>Verkauft</b> sind alle Verkäufe des Items laut Rechnungs-Mails im Zeitraum, nicht nur die der Baits, weil sich Bait-Verkäufe nicht eindeutig zuordnen lassen. <b>Quote</b> = Verkauft ÷ Eingestellt.</p></details></div>
+
     <div class="grid g11">
       <div class="card"><h2>Leave Bait</h2><div class="hint">Käufe, bei denen eine Einheit stehen blieb, gegenüber Käufen, bei denen alles mitgenommen wurde</div><div id="leave"></div></div>
       <div class="card"><h2>Watch-Liste ohne Aktivität</h2><div class="hint" id="idleHint"></div><div id="idle"></div></div>
@@ -466,6 +471,7 @@ function render() {
   renderTable(rows);
   renderDetail(rows);
   renderLeave(entries);
+  renderBaits(rows);
   renderIdle(rows);
 }
 
@@ -660,6 +666,16 @@ function renderLeave(entries) {
      <tr><td>Bait gelassen</td><td>${a.n}</td><td>${a.q}</td><td>${fmtPct(a.avg)}</td></tr>
      <tr><td>Alles gekauft</td><td>${b.n}</td><td>${b.q}</td><td>${fmtPct(b.avg)}</td></tr></tbody></table>` +
     (a.n ? "" : '<div class="note">Noch keine Käufe mit Leave-Bait-Markierung (gibt es erst ab Version 0.9.20).</div>');
+}
+
+function renderBaits(rows) {
+  const l = rows.filter((r) => r.pQty).sort((x, y) => y.pQty - x.pQty);
+  if (!l.length) { $("baitHint").textContent = ""; $("baits").innerHTML = '<div class="hint">Keine eigenen Baits im Zeitraum.</div>'; return; }
+  const posts = l.reduce((a, r) => a + r.posts.length, 0), units = l.reduce((a, r) => a + r.pQty, 0);
+  $("baitHint").textContent = `${posts} Posts mit ${units.toLocaleString("de-DE")} Stück bei ${l.length} Items.`;
+  $("baits").innerHTML = '<div class="tablewrap"><table><thead><tr><th>Item</th><th>Posts</th><th>Stück</th><th>Ø Bait-Preis</th><th>Ø Kauf</th><th>Bait vs. Ø Kauf</th><th>Verkauft</th><th>Quote</th></tr></thead><tbody>' +
+    l.map((r) => { const avg = r.pVal / r.pQty, rel = r.avgBuy ? avg / r.avgBuy * 100 : null;
+      return `<tr><td>${esc(r.name)}</td><td>${r.posts.length}</td><td>${r.pQty}</td><td>${fmtC(avg)}</td><td>${r.avgBuy ? fmtC(r.avgBuy) : "–"}</td><td>${rel != null ? fmtPct(rel) : "–"}</td><td>${r.sQty}</td><td>${fmtPct(r.sQty / r.pQty * 100)}</td></tr>`; }).join("") + "</tbody></table></div>";
 }
 
 function renderIdle(rows) {
