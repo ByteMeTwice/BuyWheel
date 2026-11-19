@@ -1369,7 +1369,7 @@ local function finishPost(message, success)
     if success then
         Addon:FlashBait(BW)
         Addon:AnnounceBait(BW, posted.target, posted.price, posted.auto)
-        Addon:NoteOwnPost(posted.itemID, posted.price, postDuration)
+        Addon:NoteOwnPost(posted.itemID, posted.price, postDuration, 1, true)
         BW:NoteOwnAction(posted.target.id)
         -- Shown in the purchase history as a negative amount (bait = true).
         BW.purchases[#BW.purchases + 1] = {

@@ -1314,7 +1314,7 @@ local function finishPost(message, success)
         if BW == Addon.Single then resumePost = posted end
     end
     if success then
-        Addon:NoteOwnPost(posted.itemID, posted.price, postDuration)
+        Addon:NoteOwnPost(posted.itemID, posted.price, postDuration, 1, true)
         Addon:AnnounceBait(BW, posted.target, posted.price, false)
         local bait = { postedAt = posted.finished, itemID = posted.itemID, name = posted.target.name,
             targetID = posted.target.id, price = posted.price, log = posted.log }

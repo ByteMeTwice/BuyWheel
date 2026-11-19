@@ -5,7 +5,7 @@ Newest first. Every update is pushed to GitHub with an entry here.
 ## 0.9.21 · 2026-11-18
 
 - **Evaluation page** `tools/BuyWheelLog.html`: a standalone page (no server, no internet) that reads `BuyWheel.lua` from the saved variables and shows the trade log as KPIs (spend, net sales, profit, profit per hour), charts (spend and sales per hour or day, profit per item, price history per item), a sortable item table, the Leave Bait share and the watch-list items without activity. Time range switch (all, 24/48 h, 7 days, last day), light and dark theme, the covered period is shown at the top. In Chrome or Edge the page remembers the file, so **Update** re-reads it after a /reload.
-- **Own baits section** on the evaluation page: per item the posts, units, average bait price, average buy price, bait price versus average buy price, sales in the period and the sell-through. Sales cannot be matched to single baits, so all sales of the item count.
+- **Own baits section** on the evaluation page, now with money: number and value of the baits, how many were probably sold (same item, 1 unit, invoice within the 2 h duration at about the bait price), how many came back unsold, net revenue and profit of the sold ones against the average buy price, plus a table per item. A bait is a 1-unit post with 2 h duration; from now on the trade log marks it with `bait = true` (`NoteOwnPost`/`LogPost` got a flag). The matching of sales to baits is an estimate.
 - **Launcher and entry points:** `tools/OpenBuyWheelLog.bat` opens the page and shows `BuyWheel.lua` in Explorer. In the game, the **Report** button in the purchase history (BWM) and `/bwlog html` open a small window with the paths (WoW cannot start a browser itself).
 
 ## 0.9.20 · 2026-11-18

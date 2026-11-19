@@ -74,9 +74,9 @@ function Addon:LogPurchase(mode, order)
 end
 
 -- A posted listing. quantity is 1 for a bait.
-function Addon:LogPost(itemID, unitPrice, duration, quantity)
+function Addon:LogPost(itemID, unitPrice, duration, quantity, bait)
     self:TradeLog("post", { id = itemID, item = itemName(itemID), unit = unitPrice, qty = quantity or 1,
-        duration = duration })
+        duration = duration, bait = bait or nil })
 end
 
 -- Sale messages: "A buyer has been found for your auction of %s." (localized global).
