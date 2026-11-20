@@ -43,9 +43,10 @@ local function money(copper)
     return ("%d g  %02d s  %02d c"):format(gold, silver, whole % 100)
 end
 
-local function itemProfitText(counts)
+local function itemProfitText(counts, normalNow)
     if counts and (counts.profitUnits or 0) == 0 and (counts.profitUnknownUnits or 0) > 0 then return "–" end
-    local value = counts and counts.estimatedProfit or 0
+    -- Revalued with the current learned normal price, so it follows its movement.
+    local value = Addon:LiveItemProfit(counts, normalNow)
     if value == 0 then return "0c" end
     local amount = value < 0 and -value or value
     local text = amount >= 10000 and ("%.2fg"):format(amount / 10000)
@@ -220,7 +221,7 @@ local function buildPanel(parent)
         row:SetFontString(title)
         local reference = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         reference:SetPoint("RIGHT", -4, -7)
-        reference:SetWidth(76)
+        reference:SetWidth(122)
         reference:SetJustifyH("RIGHT")
         reference:SetWordWrap(false)
         row.normalPrice = reference
@@ -238,7 +239,7 @@ local function buildPanel(parent)
         ratio:SetWordWrap(false)
         row.ratio = ratio
         local profit = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        profit:SetPoint("LEFT", 132, -7)
+        profit:SetPoint("LEFT", 80, -7)
         profit:SetWidth(46)
         profit:SetJustifyH("LEFT")
         profit:SetWordWrap(false)
@@ -272,7 +273,8 @@ local function buildPanel(parent)
             local counts = stats and stats.items and stats.items[BW:WatchID(self.key)]
             GameTooltip:AddLine(("Bought/Missed: %d/%d items since Reset"):format(
                 counts and counts.bought or 0, counts and counts.missed or 0), 1, 1, 1)
-            GameTooltip:AddLine("Estimated profit since Reset: " .. itemProfitText(counts), 1, 1, 1)
+            local liveLearned = BW.db.learnedPrices and BW.db.learnedPrices[BW:WatchID(self.key)]
+            GameTooltip:AddLine("Estimated profit since Reset: " .. itemProfitText(counts, liveLearned and liveLearned.normalPrice), 1, 1, 1)
             local normalInfo = BW:NormalInfo(BW:WatchID(self.key))
             if normalInfo then GameTooltip:AddLine("Normal price: " .. normalInfo, 1, 1, 1) end
             GameTooltip:AddLine("Learned value at purchase minus actual cost, including tracked bait corrections. Before fees/deposits; purchases without a normal price are excluded.", 1, 1, 1, true)
@@ -574,10 +576,15 @@ local function buildPanel(parent)
     local robText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     robText:SetPoint("RIGHT", robBox, "RIGHT", 0, -1)
     robText:SetJustifyH("RIGHT")
+    -- Baits per minute under the ROB line: last 10 minutes, and the average since Reset.
+    local bpmText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bpmText:SetPoint("TOPRIGHT", robBox, "BOTTOMRIGHT", 0, 3)
+    bpmText:SetJustifyH("RIGHT")
     robBox:SetScript("OnEnter", function(self)
         local posted, hit, open, units, rate = Addon:RobSummary(BW)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:AddLine("Return on Bait (ROB)")
+        GameTooltip:AddLine("Market baits N = watched items whose lowest price is held by a bait right now (own bait, or a foreign lowest price at or below your max buy price). BPM = how many new baits per minute appeared in the last 10 minutes; Ø = average since Reset. Counted from the watching scans, so only while watching.", 0.4, 0.7, 1, true)
         GameTooltip:AddLine("Counts the items of the same commodity that you bought at the bait price or below after a bait was posted (others matched or undercut it), against the number of baits. A bait's window ends with the next bait of that item or after 10 minutes.", 1, 1, 1, true)
         if posted > 0 then
             GameTooltip:AddLine(("%d items bought at the bait price or below after %d baits"):format(units, posted), 1, 1, 1)
@@ -660,6 +667,24 @@ local function buildPanel(parent)
     end)
     learn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Chat report: replaces the game's "You won an auction" line with a colored summary.
+    local chatReport = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    chatReport:SetPoint("TOPLEFT", x + 362, -345)
+    chatReport:SetSize(20, 20)
+    chatReport:SetChecked(BW.db.chatReport == true)
+    local chatReportLabel = label(panel, "Chat report", "GameFontHighlightSmall", 0, 0)
+    chatReportLabel:ClearAllPoints()
+    chatReportLabel:SetPoint("LEFT", chatReport, "RIGHT", 2, 0)
+    chatReport:SetScript("OnClick", function(self) BW:SetChatReport(self:GetChecked()) end)
+    chatReport:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Chat report")
+        GameTooltip:AddLine("On: every purchase of this addon is reported in chat in one line instead of the game's \"You won an auction\" message: quantity, cost, normal price, % of normal and profit. Green = bought, red = missed, blue = own bait.", 1, 1, 1, true)
+        GameTooltip:AddLine("Off: the game's messages stay as they are. Purchases you make by hand always keep the game's message.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    chatReport:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     local go = button(panel, "Start watching", 150, x, -343, function()
         clearSessionFocus()
         BW:Start(false)
@@ -702,9 +727,13 @@ local function buildPanel(parent)
         local stats = BW.purchaseStats
         for index, item in ipairs(BW.favorites or {}) do
             local counts = stats and stats.items and stats.items[BW:WatchID(item.itemKey)]
-            result[#result + 1] = { item = item, bought = counts and counts.bought or 0, index = index }
+            local learnedNow = BW.db.learnedPrices and BW.db.learnedPrices[BW:WatchID(item.itemKey)]
+            result[#result + 1] = { item = item, bought = counts and counts.bought or 0, index = index,
+                profit = Addon:LiveItemProfit(counts, learnedNow and learnedNow.normalPrice) }
         end
+        -- Highest profit first (revalued with the current normal price); ties by items bought.
         table.sort(result, function(a, b)
+            if a.profit ~= b.profit then return a.profit > b.profit end
             if a.bought ~= b.bought then return a.bought > b.bought end
             return a.index < b.index
         end)
@@ -720,27 +749,28 @@ local function buildPanel(parent)
                 row.key = key
                 local entry = BW:WatchEntry(key)
                 local learned = BW.db.learnedPrices and BW.db.learnedPrices[BW:WatchID(key)]
-                row.normalPrice:SetText(learned and compactMoney(learned.normalPrice) or "–")
                 local stats = BW.purchaseStats
                 local counts = stats and stats.items and stats.items[BW:WatchID(key)]
                 row.counts:SetText(("%d/%d"):format(counts and counts.bought or 0, counts and counts.missed or 0))
                 local id, now = BW:WatchID(key), GetTime()
-                if row.profitID ~= id or row.profitStats ~= stats or now - row.profitUpdatedAt >= 5 then
-                    row.profit:SetText(itemProfitText(counts))
+                local normalNow = learned and learned.normalPrice
+                if row.profitID ~= id or row.profitStats ~= stats or row.profitNormal ~= normalNow
+                    or row.profitBought ~= (counts and counts.bought) or now - row.profitUpdatedAt >= 5 then
+                    row.profitNormal, row.profitBought = normalNow, counts and counts.bought
+                    row.profit:SetText(itemProfitText(counts, normalNow))
+                    -- Share of the normal price actually paid on average, in brackets before
+                    -- the normal price; green at or below normal, red above.
                     local bought = counts and counts.bought or 0
-                    if bought > 0 and counts.cost then
-                        -- Average price paid per unit; green when at or below the displayed normal price.
+                    row.paidText = ""
+                    if bought > 0 and counts.cost and normalNow and normalNow > 0 then
                         local average = counts.cost / bought
-                        local text = average < 100 and (("%.1f"):format(average):gsub("%.0$", "") .. "c")
-                            or compactMoney(math.floor(average + 0.5))
-                        local normal = learned and learned.normalPrice
-                        local color = normal and normal > 0 and average > normal and "|cffff6464" or "|cff60eb80"
-                        row.ratio:SetText(color .. text .. "|r")
-                    else
-                        row.ratio:SetText("")
+                        row.paidText = (average > normalNow and "|cffff6464" or "|cff60eb80")
+                            .. ("(%.0f%%)|r "):format(average / normalNow * 100)
                     end
                     row.profitID, row.profitStats, row.profitUpdatedAt = id, stats, now
                 end
+                row.ratio:SetText("")
+                row.normalPrice:SetText((row.paidText or "") .. (learned and compactMoney(math.floor(learned.normalPrice + 0.5)) or "–"))
                 row.watch:SetChecked(entry and entry.enabled == true or false)
                 row.watch:SetEnabled(not busy)
                 local targetKey = BW.target and BW.target.key
@@ -828,12 +858,16 @@ local function buildPanel(parent)
         leaveFrom:SetEnabled(not BW.learning and not BW.benchmark and not BW:PurchasePending())
         if not leaveFrom:HasFocus() then leaveFrom:SetText(tostring(BW:LeaveBaitThreshold())) end
         anchor:SetChecked(BW.db.anchorOn == true)
+        chatReport:SetChecked(BW.db.chatReport == true)
         directBuy:SetChecked(BW.db.browseBuy == true)
         directBuy:SetEnabled(not BW.benchmark and not BW:PurchasePending())
         autoBait:SetChecked(BW.db.autoBait == true)
         do
             local posted, _, _, units = Addon:RobSummary(BW)
             robText:SetText(posted == 0 and "ROB –" or ("ROB %d items · %d bait%s"):format(units, posted, posted == 1 and "" or "s"))
+            local held, bpm, _, averageBpm = Addon:MarketBaitStats(BW)
+            bpmText:SetText(held and ("Market baits %d · BPM %.1f%s"):format(held, bpm,
+                averageBpm and (" (Ø %.1f)"):format(averageBpm) or "") or "Market baits –")
         end
         if not baitLasts:HasFocus() then baitLasts:SetText(tostring(BW:BaitLastsHours())) end
         if not baitPercent:HasFocus() then baitPercent:SetText(tostring(BW:AutoBaitPercent())) end

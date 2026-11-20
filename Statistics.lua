@@ -52,6 +52,7 @@ end
 function Addon:ResetPurchaseStats(mode)
     mode.purchaseStats = nil
     mode.rob = nil
+    mode.marketBaits = nil
     if mode.running then self:StartPurchaseStats(mode) end
 end
 
@@ -85,9 +86,16 @@ function Addon:RecordPurchaseStats(mode, order, success, missed)
             local profit = order.normalPrice * order.quantity - order.cost
             stats.estimatedProfit = (stats.estimatedProfit or 0) + profit
             stats.profitUnits = (stats.profitUnits or 0) + order.quantity
+            -- Overall share paid: cost of all valued purchases vs. their normal-price value.
+            stats.paidCost = (stats.paidCost or 0) + order.cost
+            stats.paidNormal = (stats.paidNormal or 0) + order.normalPrice * order.quantity
             if item then
                 item.estimatedProfit = (item.estimatedProfit or 0) + profit
                 item.profitUnits = (item.profitUnits or 0) + order.quantity
+                -- Stock still valued at the normal price of its purchase; lets the list
+                -- revalue the profit when the learned normal price moves.
+                item.normalUnits = (item.normalUnits or 0) + order.quantity
+                item.normalValue = (item.normalValue or 0) + order.normalPrice * order.quantity
             end
             if order.log then order.log.estimatedProfit = profit end
         else
@@ -150,6 +158,21 @@ function Addon:RobPurchase(mode, order)
     rob.units = rob.units + quantity
 end
 
+-- Baits per minute: over the last 10 minutes (live) and since Reset (average over active
+-- watching time). Both nil until a bait was posted.
+function Addon:MarketBaitStats(mode)
+    local mb = mode.marketBaits
+    if not mb then return end
+    local now = GetTime()
+    local recent = 0
+    for _, at in ipairs(mb.times) do
+        if now - at <= 600 then recent = recent + 1 end
+    end
+    local elapsed = now - mb.since
+    local window = math.min(600, math.max(60, elapsed))
+    return mb.count or 0, recent * 60 / window, mb.total, elapsed >= 60 and mb.total * 60 / elapsed or nil
+end
+
 -- posted, successful, still open (window running, no purchase yet), items bought, rate
 function Addon:RobSummary(mode)
     local rob = mode.rob
@@ -202,6 +225,10 @@ function Addon:RecordBaitPost(postingMode, bait)
             -- Purchase costs were already deducted: remove only the expected
             -- normal-price proceeds, not the cost of this unit a second time.
             adjustment = -record.normalPrice
+            if record.item and (record.item.normalUnits or 0) > 0 then
+                record.item.normalUnits = record.item.normalUnits - 1
+                record.item.normalValue = (record.item.normalValue or 0) - record.normalPrice
+            end
         else
             -- Previously unpriced purchases contributed no profit or cost.
             -- Their actual cost is now known, awaiting the bait's sale proceeds.
@@ -246,6 +273,23 @@ function Addon:RecordBaitSale(bait)
         stats.baitSaleRevenue = (stats.baitSaleRevenue or 0) + bait.price
         if bait.log then bait.log.baitProfitSaleAdjustment = bait.price end
     end
+end
+
+-- Item profit revalued with the current normal price: units still counted as stock are
+-- worth normalNow instead of the normal price of their purchase.
+function Addon:LiveItemProfit(counts, normalNow)
+    if not counts then return 0 end
+    local profit = counts.estimatedProfit or 0
+    if type(normalNow) == "number" and normalNow > 0 and (counts.normalUnits or 0) > 0 then
+        profit = profit + counts.normalUnits * normalNow - (counts.normalValue or 0)
+    end
+    return profit
+end
+
+-- Share of the normal price actually paid across all items since Reset (percent).
+function Addon:PaidPercent(mode)
+    local stats = mode.purchaseStats
+    if stats and (stats.paidNormal or 0) > 0 then return (stats.paidCost or 0) * 100 / stats.paidNormal end
 end
 
 function Addon:PurchaseStatsSeconds(mode, key)
@@ -314,6 +358,9 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
         GameTooltip:AddLine("Confirmed items divided by active watching time for this setting, across all runs since Reset. Waiting for offers and manual bait posting count as active time.", 1, 1, 1, true)
         GameTooltip:AddLine("STOP pauses measurement.", 1, 1, 1, true)
         if hasProfit then
+            local paid = Addon:PaidPercent(mode)
+            GameTooltip:AddLine("Paid " .. (paid and ("%.1f%%"):format(paid) or "–") .. " of normal · all items since Reset")
+            GameTooltip:AddLine("Total cost of all purchases divided by their value at the normal price at the time of purchase (items without a normal price are excluded).", 1, 1, 1, true)
             local stats = mode.purchaseStats or {}
             GameTooltip:AddLine("Estimated profit · all " .. modeName .. " purchases since Reset")
             GameTooltip:AddLine("Learned value minus actual purchase costs, adjusted for tracked bait sales. Before AH fees/deposits.", 1, 1, 1, true)
@@ -388,11 +435,17 @@ function Addon:AttachPurchaseStats(mode, panel, detail, preferredY)
         local row = stats and stats.rows[key]
         local seconds = Addon:PurchaseStatsSeconds(mode, key)
         heading:SetText(title .. " · " .. duration(seconds))
-        rates:SetText(seconds > 0 and ("%.1f items/min  ·  %.0f items/hour"):format((row and row.units or 0) * 60 / seconds, (row and row.units or 0) * 3600 / seconds)
-            or "– items/min  ·  – items/hour")
+        local paid = Addon:PaidPercent(mode)
+        local paidText = hasProfit and ("  ·  Paid " .. (paid and ("%.1f%%"):format(paid) or "–") .. " of normal") or ""
+        rates:SetText((seconds > 0 and ("%.1f items/min  ·  %.0f items/hour"):format((row and row.units or 0) * 60 / seconds, (row and row.units or 0) * 3600 / seconds)
+            or "– items/min  ·  – items/hour") .. paidText)
         if hasProfit then
             local hourly = Addon:PurchaseProfitGoldPerHour(mode)
-            cachedHourlyText = hourly and ("%.2f g/h"):format(hourly) or "– g/h"
+            -- Running time (active watching time since Reset), paced like the rates.
+            local total = math.floor(Addon:TotalPurchaseStatsSeconds(mode))
+            local runtime = total >= 3600 and ("%d:%02d:%02d"):format(math.floor(total / 3600), math.floor(total / 60) % 60, total % 60)
+                or ("%d:%02d"):format(math.floor(total / 60), total % 60)
+            cachedHourlyText = (hourly and ("%.2f g/h"):format(hourly) or "– g/h") .. " · " .. runtime
             displayedSignature = profitSignature(stats)
             profit:ClearAllPoints()
             profit:SetPoint("TOPLEFT", 0, isMulti and 0 or compact and -20 or -40)

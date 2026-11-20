@@ -187,6 +187,9 @@ function SW:SalePreview()
     end
     -- Stage 1 sells the cheap share (rounded), stage 2 the rest.
     local cheap = math.floor(quantity * self:CheapShare() / 100 + 0.5)
+    -- Under 5 items splitting makes no sense (two auctions): everything goes to the price
+    -- with the larger share (the cheapest price on a tie).
+    if quantity < 5 then cheap = self:CheapShare() >= 50 and quantity or 0 end
     local counts = { cheap, quantity - cheap }
     local preview = { counts = counts, entries = {}, quantity = quantity, total = 0,
         item = { id = self.selected.id, key = self.selected.key, name = self.selected.name }, prices = self.presets }

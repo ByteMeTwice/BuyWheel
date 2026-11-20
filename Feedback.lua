@@ -158,7 +158,114 @@ function Addon:AnnounceBait(mode, target, price, auto)
     local normal = target.id and self:LearnedNormalPrice(mode, target.id)
     local percent = normal and (" · %.0f%% of normal"):format(price / normal * 100) or ""
     mode.lastBaitInfo = { name = target.name, price = price, auto = auto == true, at = GetTime() }
-    local text = ("|cff66b3ffBuyWheel Bait|r (%s): %s · %s%s"):format(
-        auto and "auto" or "manual", target.name or "?", plainMoney(price), percent)
+    local text
+    if mode.db and mode.db.chatReport then
+        -- Chat report on: one short blue line, item and percent of normal.
+        text = ("|cff66b3ffBait %s%s|r"):format(target.name or "?",
+            normal and normal > 0 and (" · %.0f%%"):format(price / normal * 100) or "")
+    else
+        text = ("|cff66b3ffBuyWheel Bait|r (%s): %s · %s%s"):format(
+            auto and "auto" or "manual", target.name or "?", plainMoney(price), percent)
+    end
     if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
 end
+
+-- Chat report of purchases (Multi checkbox "Chat report", db.chatReport). On: the game's
+-- "You won an auction for ..." line is replaced by a short one: quantity, item, % of the
+-- normal price and the profit of the trade. Green = bought, red = missed, blue = own bait
+-- (see AnnounceBait). Off: the game's message stays exactly as it is.
+-- Short, rounded money: 12g, 3.5g, 40s, 7c.
+local function reportMoney(value)
+    local amount = math.abs(value)
+    local text
+    if amount >= 100000 then text = ("%dg"):format(math.floor(amount / 10000 + 0.5))
+    elseif amount >= 10000 then text = (("%.1f"):format(amount / 10000):gsub("%.0$", "")) .. "g"
+    elseif amount >= 100 then text = ("%ds"):format(math.floor(amount / 100 + 0.5))
+    else text = ("%dc"):format(math.floor(amount + 0.5)) end
+    return (value < 0 and "-" or "+") .. text
+end
+
+function Addon:AnnouncePurchase(mode, order, success, missed)
+    if not mode.db or not mode.db.chatReport or not order then return end
+    if not (success or missed) then return end
+    local quantity, cost = order.quantity or 0, order.cost or 0
+    if quantity <= 0 then return end
+    local name = ("%d× %s"):format(quantity, order.name or "?")
+    local text
+    if success then
+        local normal = order.normalPrice
+        if type(normal) == "number" and normal > 0 then
+            text = ("|cff40ff60%s · %.0f%% · %s|r"):format(name, cost / (normal * quantity) * 100,
+                reportMoney(normal * quantity - cost))
+        else
+            text = ("|cff40ff60%s|r"):format(name)
+        end
+    else
+        text = ("|cffff5050%s · missed|r"):format(name)
+    end
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
+end
+
+-- Own bait sold (the bait is gone): short blue line with the item and how long it stood.
+function Addon:AnnounceBaitSold(mode, bait, now)
+    if not mode.db or not mode.db.chatReport or not bait then return end
+    local text = "|cff66b3ffBait sold " .. (bait.name or "?")
+    if bait.postedAt then
+        local total = math.max(0, math.floor(now - bait.postedAt))
+        text = text .. " · " .. (total >= 3600
+            and ("%d:%02d:%02d"):format(math.floor(total / 3600), math.floor(total / 60) % 60, total % 60)
+            or ("%d:%02d"):format(math.floor(total / 60), total % 60))
+    end
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text .. "|r") end
+end
+
+-- Hides the game's own won-auction line, but only while the report is on and only for a
+-- purchase made by this addon (just now or still running); manual purchases keep the line.
+-- The line does not always come as a system chat event (the auction house notification
+-- writes it straight into the chat frame), so besides the event filter the chat frames'
+-- AddMessage is wrapped.
+local function wonPattern()
+    local format = ERR_AUCTION_WON_S or "You won an auction for %s"
+    return "^" .. format:gsub("[%^%$%(%)%.%[%]%*%+%-%?]", "%%%0"):gsub("%%%%s", ".+")
+end
+
+local wonPatternText
+function Addon:HideWonMessage(message)
+    local mode = Addon.Multi
+    if type(message) ~= "string" or not mode or not mode.db or not mode.db.chatReport then return false end
+    wonPatternText = wonPatternText or wonPattern()
+    if message:find(wonPatternText) or message:find("won an auction", 1, true) then
+        return mode.PurchaseActiveOrRecent and mode:PurchaseActiveOrRecent() or false
+    end
+    -- The game's sale line of an own bait: replaced by the blue "Bait sold" line.
+    if mode.IsBaitSaleMessage and mode:IsBaitSaleMessage(message) then return true end
+    -- The game's "auction created" line for an own bait (yellow): replaced by the blue bait line.
+    local lower = message:lower()
+    if lower:find("auction", 1, true) and (lower:find("creat", 1, true) or lower:find("start", 1, true)
+        or lower:find("post", 1, true) or lower:find("list", 1, true)) then
+        return mode.PostActiveOrRecent and mode:PostActiveOrRecent() or false
+    end
+    return false
+end
+
+local wonFilterAdded
+function Addon:AddWonFilter()
+    if wonFilterAdded then return end
+    wonFilterAdded = true
+    if ChatFrame_AddMessageEventFilter then
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, message)
+            return Addon:HideWonMessage(message)
+        end)
+    end
+    for i = 1, NUM_CHAT_WINDOWS or 10 do
+        local frame = _G["ChatFrame" .. i]
+        if frame and frame.AddMessage then
+            local original = frame.AddMessage
+            frame.AddMessage = function(self, message, ...)
+                if Addon:HideWonMessage(message) then return end
+                return original(self, message, ...)
+            end
+        end
+    end
+end
+Addon:AddWonFilter()

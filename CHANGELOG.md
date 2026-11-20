@@ -2,6 +2,15 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.22 · 2026-11-20
+
+- **BWM favorites list:** sorted by profit (revalued with the current normal price, so it follows the normal price as it moves), the learned normal price is rounded to whole copper, and the average price paid shows as a percentage of the normal price in brackets before it (green at or below normal, red above).
+- **BWM statistics:** the rates line shows "Paid x% of normal" across all items, the profit line shows the running time since Reset (minutes and seconds, paced like the rates).
+- **Chat report (BWM checkbox, off by default):** replaces the game's "You won an auction" line with one short line per purchase: green `20× Item · 88% · +16s` (quantity, share of the normal price, profit of the trade), red when missed. Own baits get a blue line `Bait Item · 85%` when posted and `Bait sold Item · 4:32` when sold, with how long they stood; the game's own lines for them are hidden. Purchases made by hand keep the game's message. Off: everything stays as before.
+- **Market baits counter** under ROB: `Market baits N · BPM x (Ø y)`: watched items whose lowest price is held by a bait right now (own bait at bait level, or a foreign lowest price at or below the item's max buy price), and how many new ones appeared per minute (last 10 minutes, and average since Reset).
+- **Night anchor off:** the live buy limit follows the normal price in both directions (only with the anchor on it may only go down in a moving market).
+- **SellWheel:** under 5 items nothing is split (one auction): everything goes to the price with the larger share (cheapest on a tie).
+
 ## 0.9.21 · 2026-11-18
 
 - **Evaluation page** `tools/BuyWheelLog.html`: a standalone page (no server, no internet) that reads `BuyWheel.lua` from the saved variables and shows the trade log as KPIs (spend, net sales, profit, profit per hour), charts (spend and sales per hour or day, profit per item, price history per item), a sortable item table, the Leave Bait share and the watch-list items without activity. Time range switch (all, 24/48 h, 7 days, last day), light and dark theme, the covered period is shown at the top. In Chrome or Edge the page remembers the file, so **Update** re-reads it after a /reload.

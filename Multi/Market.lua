@@ -198,6 +198,11 @@ function BW:SetAnchorOn(enabled)
     self.db.anchorOn = enabled == true
 end
 
+-- Chat report: one colored line per purchase instead of the game's "You won an auction".
+function BW:SetChatReport(enabled)
+    self.db.chatReport = enabled == true
+end
+
 function BW:SetFastQuoteX3(enabled)
     if not self:CanChangeFastQuote() then return end
     self.db.fastQuoteX3 = enabled == true
@@ -1170,6 +1175,7 @@ local function finishPurchase(success, message, missed)
     purchase = nil
     Addon:FlashPurchaseResult(BW, success)
     Addon:RecordPurchaseStats(BW, bought, success, missed)
+    pcall(Addon.AnnouncePurchase, Addon, BW, bought, success, missed, message)
     if success then
         BW:NoteOwnAction(bought.tradeKey)
         if bought.avgLimit and bought.quantity > 0 then
@@ -1216,6 +1222,19 @@ end
 
 function BW:PurchasePending()
     return purchase ~= nil
+end
+
+-- True while an own purchase runs or ended in the last 5 seconds (chat report filter).
+function BW:PurchaseActiveOrRecent()
+    if purchase then return true end
+    return recentPurchase ~= nil and recentPurchase.finished ~= nil and GetTime() - recentPurchase.finished <= 5
+end
+
+-- True while an own listing (bait) is being posted or was posted in the last 5 seconds.
+function BW:PostActiveOrRecent()
+    if post then return true end
+    local last = self.lastBaitInfo
+    return last ~= nil and GetTime() - last.at <= 5
 end
 
 function BW:PurchaseUnconfirmed()
@@ -1723,8 +1742,50 @@ function BW:AutoBaitTokens()
     return ab.tokens, budget
 end
 
+-- Market baits: watched items whose lowest price is currently held by a bait, from every
+-- complete batch reply. A bait is an own listing at bait level (see AutoBaitObserve) or a
+-- foreign lowest price at or below the item's max buy price. Counts how many items are held right now and how often a new one appears
+-- (BPM, see Addon:MarketBaitStats). Cleared by Reset.
+function BW:ObserveMarketBaits(rows)
+    local now = GetTime()
+    local mb = self.marketBaits
+    if not mb then
+        mb = { active = {}, times = {}, since = now, total = 0 }
+        self.marketBaits = mb
+    end
+    local percent = self:AutoBaitPercent()
+    local current = {}
+    for _, row in ipairs(rows) do
+        local id = self:WatchID(row.itemKey)
+        local entry = self.db.watchItems[id]
+        local normal = Addon:LearnedNormalPrice(self, id)
+        if entry and entry.enabled and normal and (row.minPrice or 0) > 0 then
+            local held
+            if row.containsOwnerItem == true then
+                held = row.minPrice <= math.max(100, normal * percent / 100 * 1.2)
+            else
+                -- Foreign: the lowest price is at or below the item's max buy price, i.e. a
+                -- lure price that would be bought.
+                held = (entry.maxPrice or 0) > 0 and row.minPrice <= entry.maxPrice
+            end
+            if held then
+                current[id] = true
+                if not mb.active[id] then
+                    mb.times[#mb.times + 1] = now
+                    mb.total = mb.total + 1
+                end
+            end
+        end
+    end
+    mb.active = current
+    mb.count = 0
+    for _ in pairs(current) do mb.count = mb.count + 1 end
+    while mb.times[1] and now - mb.times[1] > 600 do table.remove(mb.times, 1) end
+end
+
 -- Called with every complete batch reply while watching.
 function BW:AutoBaitObserve(rows)
+    self:ObserveMarketBaits(rows)
     local ab = self.ab
     if not ab then return end
     local owner, dip = {}, false
@@ -2050,8 +2111,9 @@ local function localizedSaleName(plain)
     return plain:match("^" .. pattern .. "$")
 end
 
--- Matches a sale message to the latest tracked bait of that item and credits it.
-local function recordBaitSale(message, source)
+-- Reads a sale message: returns a matcher for baits (itemID or name), or nil when the
+-- text is not a sale message.
+local function parseSale(message, source)
     if type(message) ~= "string" then return end
     local plain = plainSaleText(message)
     local localizedName = localizedSaleName(plain)
@@ -2074,6 +2136,13 @@ local function recordBaitSale(message, source)
         if itemID then return itemID == bait.itemID end
         return name == bait.name
     end
+    return matches
+end
+
+-- Credits the latest tracked bait of the sold item (and reports it in chat).
+local function recordBaitSale(message, source)
+    local matches = parseSale(message, source)
+    if not matches then return end
     local now = GetTime()
     -- A sale may produce both a formatted notification and a system-chat
     -- message. Pair the two channels without suppressing consecutive sales
@@ -2091,6 +2160,7 @@ local function recordBaitSale(message, source)
         if matches(bait) then
             bait.soldAt = now
             Addon:RecordBaitSale(bait)
+            pcall(Addon.AnnounceBaitSold, Addon, BW, bait, now)
             table.remove(trackedBaits, i)
             recentBaitSales[#recentBaitSales + 1] = {
                 itemID = bait.itemID, name = bait.name, source = source, at = now,
@@ -2098,6 +2168,18 @@ local function recordBaitSale(message, source)
             return true
         end
     end
+end
+
+-- True when a message is the game's sale message of an own bait (tracked or sold a moment
+-- ago); the chat report replaces it with the short blue line.
+function BW:IsBaitSaleMessage(message)
+    local matches = parseSale(message, "chat")
+    if not matches then return false end
+    for _, bait in ipairs(trackedBaits) do if matches(bait) then return true end end
+    for _, receipt in ipairs(recentBaitSales) do
+        if GetTime() - receipt.at <= 5 and matches(receipt) then return true end
+    end
+    return false
 end
 
 local handlers = {
