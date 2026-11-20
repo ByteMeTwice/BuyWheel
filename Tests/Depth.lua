@@ -147,13 +147,18 @@ test("A falling market uses the newest depth sample, not the quartile of old hig
     eq(learned.normalPrice, 50)
     eq(learned.falling, true)
     eq(learned.drift, true)
-    -- While falling or drifting the buy limit only goes down.
+    -- With the Night anchor on, while falling or drifting the buy limit only goes down.
     f.mode.db.learnPercent = 60
+    f.mode.db.anchorOn = true
     f.mode.db.watchItems[id].maxPrice = 20
     f.mode:ApplyLiveLimit(id, learned, 50)
     eq(f.mode.db.watchItems[id].maxPrice, 20, "30 would raise the limit")
     f.mode:ApplyLiveLimit(id, learned, 20)
     eq(f.mode.db.watchItems[id].maxPrice, 12, "a lower value is applied")
+    -- Without the Night anchor the limit follows the normal price both ways.
+    f.mode.db.anchorOn = false
+    f.mode:ApplyLiveLimit(id, learned, 50)
+    eq(f.mode.db.watchItems[id].maxPrice, 30, "the limit may rise again")
 end)
 
 test("Normal noise between depth samples is not a falling market and stays grey", function()
