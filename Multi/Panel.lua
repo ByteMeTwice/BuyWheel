@@ -580,11 +580,49 @@ local function buildPanel(parent)
     local bpmText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bpmText:SetPoint("TOPRIGHT", robBox, "BOTTOMRIGHT", 0, 3)
     bpmText:SetJustifyH("RIGHT")
+    -- Gold by post (PostGold.lua): in the mailbox now and
+    -- on its way from sold auctions, with the time until the next sale arrives.
+    local mailText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    mailText:SetPoint("TOPRIGHT", bpmText, "BOTTOMRIGHT", 0, -1)
+    mailText:SetJustifyH("RIGHT")
+    local function mailSummary()
+        local M = Addon.PostGold
+        if not M then return nil end
+        local ok, s = pcall(M.Summary, M)
+        return ok and type(s) == "table" and s or nil
+    end
+    local function mailGold(copper)
+        return GetCoinTextureString and GetCoinTextureString(math.floor((copper or 0) / 100) * 100) or compactMoney(copper or 0)
+    end
+    local function mailDuration(seconds)
+        seconds = math.max(0, math.floor(seconds or 0))
+        if seconds >= 3600 then return ("%dh %02dm"):format(seconds / 3600, (seconds % 3600) / 60) end
+        return ("%dm"):format(math.ceil(seconds / 60))
+    end
+    local function refreshMail()
+        local s = mailSummary()
+        if not s then mailText:SetText("") return end
+        if (s.mailbox or 0) <= 0 and (s.coming or 0) <= 0 then mailText:SetText("Post –") return end
+        local text = ("Post %s"):format(mailGold(s.mailbox))
+        if (s.coming or 0) > 0 then
+            text = text .. (" · +%s in %s"):format(mailGold(s.coming), mailDuration(s.nextIn))
+        end
+        mailText:SetText(text)
+    end
     robBox:SetScript("OnEnter", function(self)
         local posted, hit, open, units, rate = Addon:RobSummary(BW)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:AddLine("Return on Bait (ROB)")
         GameTooltip:AddLine("Market baits N = watched items whose lowest price is held by a bait right now (own bait, or a foreign lowest price at or below your max buy price). BPM = how many new baits per minute appeared in the last 10 minutes; Ø = average since Reset. Counted from the watching scans, so only while watching.", 0.4, 0.7, 1, true)
+        local mail = mailSummary()
+        if mail then
+            GameTooltip:AddLine(("Post: %s in the mailbox (as of the last visit) · %s on its way%s"):format(
+                mailGold(mail.mailbox), mailGold(mail.coming), mail.estimated and " (estimate)" or ""), 1, 0.82, 0.2, true)
+            for i = 1, math.min(6, #(mail.lines or {})) do
+                local l = mail.lines[i]
+                GameTooltip:AddLine(("%s: %s in %s"):format((l.item .. ((l.qty and l.qty > 0) and (" x" .. l.qty) or "")), mailGold(l.amount), mailDuration(l.left)), 0.8, 0.8, 0.8)
+            end
+        end
         GameTooltip:AddLine("Counts the items of the same commodity that you bought at the bait price or below after a bait was posted (others matched or undercut it), against the number of baits. A bait's window ends with the next bait of that item or after 10 minutes.", 1, 1, 1, true)
         if posted > 0 then
             GameTooltip:AddLine(("%d items bought at the bait price or below after %d baits"):format(units, posted), 1, 1, 1)
@@ -868,6 +906,7 @@ local function buildPanel(parent)
             local held, bpm, _, averageBpm = Addon:MarketBaitStats(BW)
             bpmText:SetText(held and ("Market baits %d · BPM %.1f%s"):format(held, bpm,
                 averageBpm and (" (Ø %.1f)"):format(averageBpm) or "") or "Market baits –")
+            refreshMail()
         end
         if not baitLasts:HasFocus() then baitLasts:SetText(tostring(BW:BaitLastsHours())) end
         if not baitPercent:HasFocus() then baitPercent:SetText(tostring(BW:AutoBaitPercent())) end

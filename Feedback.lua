@@ -219,6 +219,20 @@ function Addon:AnnounceBaitSold(mode, bait, now)
     if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text .. "|r") end
 end
 
+-- Own sale (any auction of this character): amber line with count, item, what it brings after the
+-- cut and the time the money reaches the mailbox. Own baits have their blue line instead.
+function Addon:AnnounceSale(info)
+    local mode = Addon.Multi
+    if not mode or not mode.db or not mode.db.chatReport or type(info) ~= "table" then return end
+    if mode.RecentBaitSale and mode:RecentBaitSale(info.itemID, info.item) then return end
+    local name = info.item or "?"
+    local text = (info.qty and info.qty > 0) and ("%d× %s"):format(info.qty, name) or name
+    text = "|cffffd24dSold " .. text
+    if info.amount and info.amount > 0 then text = text .. " · " .. reportMoney(info.amount):gsub("^%+", "") end
+    if info.eta then text = text .. " · mail " .. date("%H:%M", info.eta) end
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text .. "|r") end
+end
+
 -- Hides the game's own won-auction line, but only while the report is on and only for a
 -- purchase made by this addon (just now or still running); manual purchases keep the line.
 -- The line does not always come as a system chat event (the auction house notification
@@ -239,6 +253,8 @@ function Addon:HideWonMessage(message)
     end
     -- The game's sale line of an own bait: replaced by the blue "Bait sold" line.
     if mode.IsBaitSaleMessage and mode:IsBaitSaleMessage(message) then return true end
+    -- Any other own sale line too: replaced by the amber "Sold" line (PostGold).
+    if mode.IsSaleMessage and mode:IsSaleMessage(message) then return true end
     -- The game's "auction created" line for an own bait (yellow): replaced by the blue bait line.
     local lower = message:lower()
     if lower:find("auction", 1, true) and (lower:find("creat", 1, true) or lower:find("start", 1, true)

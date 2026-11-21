@@ -2,6 +2,11 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.23 · 2026-11-21
+
+- **Gold by post (PostGold.lua, built in, no other addon needed):** tracks this character's mail gold from sale notices, the SOLD rows of your auctions and the mailbox (letters and "Sale Pending" invoices). The Multi panel shows `Post 12g 34s · +45g in 23m` (in the mailbox / on its way and when the next sale arrives) under the market baits line; the ROB tooltip lists the next sales.
+- **Chat report, sales:** the game's yellow sale line is replaced by `Sold 20× Item · 12g · mail 14:32` (count, item, proceeds after the cut, time the money arrives). Own baits keep their blue "Bait sold" line.
+
 ## 0.9.22 · 2026-11-20
 
 - **BWM favorites list:** sorted by profit (revalued with the current normal price, so it follows the normal price as it moves), the learned normal price is rounded to whole copper, and the average price paid shows as a percentage of the normal price in brackets before it (green at or below normal, red above).

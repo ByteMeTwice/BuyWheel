@@ -2170,6 +2170,19 @@ local function recordBaitSale(message, source)
     end
 end
 
+-- True when a message is a sale message of the game (any own auction).
+function BW:IsSaleMessage(message)
+    return parseSale(message, "chat") ~= nil
+end
+
+--- True when this item was an own bait that sold a moment ago (its blue line is shown).
+function BW:RecentBaitSale(itemID, name)
+    for _, receipt in ipairs(recentBaitSales) do
+        if GetTime() - receipt.at <= 5 and ((itemID and itemID == receipt.itemID) or (name and name == receipt.name)) then return true end
+    end
+    return false
+end
+
 -- True when a message is the game's sale message of an own bait (tracked or sold a moment
 -- ago); the chat report replaces it with the short blue line.
 function BW:IsBaitSaleMessage(message)
