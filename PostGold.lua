@@ -83,6 +83,16 @@ local function idFromName(name)
     return ok and tonumber(id) or nil
 end
 
+local function nameFromID(id)
+    id = tonumber(id)
+    if not id then return nil end
+    local get = (C_Item and C_Item.GetItemNameByID) or GetItemInfo
+    if not get then return nil end
+    local ok, n = pcall(get, id)
+    if ok and type(n) == "string" and n ~= "" then return n end
+    if C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, id) end
+end
+
 -- A line of the same item, or nil when one side does not know its item.
 local function sameItem(p, itemID, name)
     if p.itemID and itemID then return p.itemID == itemID end
@@ -106,6 +116,7 @@ function PostGold:ReadOwned()
             local link = type(a.itemLink) == "string" and a.itemLink or nil
             local name = link and link:match("%[(.-)%]") or nil
             local itemID = (type(a.itemKey) == "table" and tonumber(a.itemKey.itemID)) or (link and tonumber(link:match("|Hitem:(%d+)"))) or nil
+            name = name or nameFromID(itemID)
             if a.status == SOLD_STATUS then
                 local total = tonumber(a.buyoutAmount) or tonumber(a.bidAmount)
                 local left = tonumber(a.timeLeftSeconds)
@@ -235,6 +246,7 @@ local function noteSale(note, text, auctionID)
     local link = type(text) == "string" and text:match("(|c%x+|Hitem:.-|h.-|h|r)") or nil
     local name = (cached and cached.item) or itemFromText(text)
     local itemID = (link and tonumber(link:match("|Hitem:(%d+)"))) or (cached and cached.itemID) or idFromName(name)
+    name = name or nameFromID(itemID) or (type(text) == "string" and #text < 80 and text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", "") or nil)
     local now = time()
     -- The auction list may already have shown this sale as SOLD: it counts once, from the list.
     for _, p in ipairs(r.pending) do
@@ -337,3 +349,118 @@ frame:SetScript("OnEvent", function(_, event, a, b, c)
     if not ok and Addon.Print then Addon:Print("PostGold: " .. tostring(err)) end
 end)
 
+
+------------------------------------------------------------ Always-visible display
+
+-- A small frame on the screen, wherever you are: gold in the mailbox and gold on its way with the
+-- time until the next sale arrives. Drag it with the left mouse button; /bwpost shows or hides it,
+-- /bwpost reset puts it back.
+local function coins(copper)
+    -- Gold and silver as text (copper left out), independent of the coin-icon helpers.
+    copper = math.max(0, math.floor((tonumber(copper) or 0) / 100))   -- whole silver
+    local gold, silver = math.floor(copper / 100), copper % 100
+    if gold > 0 then return ("|cffffd700%dg|r |cffc7c7cf%ds|r"):format(gold, silver) end
+    return ("|cffc7c7cf%ds|r"):format(silver)
+end
+
+local function duration(seconds)
+    seconds = math.max(0, math.floor(seconds or 0))
+    if seconds >= 3600 then return ("%dh %02dm"):format(math.floor(seconds / 3600), math.floor(seconds % 3600 / 60)) end
+    return ("%dm"):format(math.ceil(seconds / 60))
+end
+
+local hud = CreateFrame("Frame", "BuyWheelPostGold", UIParent, "BackdropTemplate")
+hud:SetSize(190, 38)
+hud:SetFrameStrata("MEDIUM")
+hud:SetClampedToScreen(true)
+hud:SetMovable(true)
+hud:EnableMouse(true)
+hud:RegisterForDrag("LeftButton")
+if hud.SetBackdrop then
+    hud:SetBackdrop({ bgFile = "Interface\Tooltips\UI-Tooltip-Background", edgeFile = "Interface\Tooltips\UI-Tooltip-Border",
+        edgeSize = 10, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
+    hud:SetBackdropColor(0, 0, 0, 0.6)
+    hud:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
+end
+local mailLine = hud:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+mailLine:SetPoint("TOPLEFT", 8, -7)
+mailLine:SetJustifyH("LEFT")
+local comingLine = hud:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+comingLine:SetPoint("TOPLEFT", mailLine, "BOTTOMLEFT", 0, -3)
+comingLine:SetJustifyH("LEFT")
+
+local function placeHud()
+    local r = root()
+    local pos = r and r.hud
+    hud:ClearAllPoints()
+    if pos and pos.point then
+        hud:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+    else
+        hud:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -230, -80)
+    end
+    hud:SetShown(not (r and r.hudHidden))
+end
+
+hud:SetScript("OnDragStart", function(self) self:StartMoving() end)
+hud:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local r = root()
+    if not r then return end
+    local point, _, relPoint, x, y = self:GetPoint()
+    r.hud = { point = point, relPoint = relPoint, x = x, y = y }
+end)
+
+local function refreshHud()
+    local s = PostGold:Summary()
+    mailLine:SetText(("Mailbox: %s"):format(coins(s.mailbox)))
+    if (s.coming or 0) > 0 then
+        comingLine:SetText(("On its way: %s%s · next in %s"):format(coins(s.coming), s.estimated and "~" or "", duration(s.nextIn)))
+    else
+        comingLine:SetText("On its way: –")
+    end
+    hud:SetWidth(math.max(150, math.max(mailLine:GetStringWidth(), comingLine:GetStringWidth()) + 18))
+end
+
+hud:SetScript("OnEnter", function(self)
+    local s = PostGold:Summary()
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+    GameTooltip:AddLine("Gold by post")
+    GameTooltip:AddLine(("In the mailbox: %s%s"):format(coins(s.mailbox), s.seenAt and (" (as of the last visit, " .. duration(time() - s.seenAt) .. " ago)") or " (mailbox not visited yet)"), 1, 1, 1)
+    GameTooltip:AddLine(("On its way: %s%s"):format(coins(s.coming), s.estimated and " (estimate)" or ""), 1, 1, 1)
+    for i = 1, math.min(8, #s.lines) do
+        local l = s.lines[i]
+        GameTooltip:AddLine(("%s%s: %s in %s"):format(l.item, (l.qty and l.qty > 0) and (" x" .. l.qty) or "", l.amount and coins(l.amount) or "?", duration(l.left)), 0.8, 0.8, 0.8)
+    end
+    GameTooltip:AddLine("Drag to move · /bwpost hides or shows it", 0.5, 0.5, 0.5)
+    GameTooltip:Show()
+end)
+hud:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+local elapsed = 0
+hud:SetScript("OnUpdate", function(_, dt)
+    elapsed = elapsed + dt
+    if elapsed < 1 then return end
+    elapsed = 0
+    pcall(refreshHud)
+end)
+
+local loginFrame = CreateFrame("Frame")
+loginFrame:RegisterEvent("PLAYER_LOGIN")
+loginFrame:SetScript("OnEvent", function()
+    pcall(placeHud)
+    pcall(refreshHud)
+end)
+
+SLASH_BWPOST1 = "/bwpost"
+SlashCmdList["BWPOST"] = function(arg)
+    local r = root()
+    if not r then return end
+    arg = (arg or ""):lower()
+    if arg == "reset" then
+        r.hud, r.hudHidden = nil, nil
+    else
+        r.hudHidden = not r.hudHidden or nil
+    end
+    placeHud()
+    refreshHud()
+end

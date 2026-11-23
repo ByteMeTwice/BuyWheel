@@ -4,8 +4,9 @@ Newest first. Every update is pushed to GitHub with an entry here.
 
 ## 0.9.23 · 2026-11-21
 
-- **Gold by post (PostGold.lua, built in, no other addon needed):** tracks this character's mail gold from sale notices, the SOLD rows of your auctions and the mailbox (letters and "Sale Pending" invoices). The Multi panel shows `Post 12g 34s · +45g in 23m` (in the mailbox / on its way and when the next sale arrives) under the market baits line; the ROB tooltip lists the next sales.
+- **Gold by post (PostGold.lua, built in, no other addon needed):** tracks this character's mail gold from sale notices, the SOLD rows of your auctions and the mailbox (letters and "Sale Pending" invoices). A small always-visible frame on the screen (drag it with the left mouse button, `/bwpost` hides or shows it, `/bwpost reset` puts it back) shows `Mailbox: gold` and `On its way: gold · next in 23m`; its tooltip lists the next sales.
 - **Chat report, sales:** the game's yellow sale line is replaced by `Sold 20× Item · 12g · mail 14:32` (count, item, proceeds after the cut, time the money arrives). Own baits keep their blue "Bait sold" line.
+- **Own max buy % per item (BWM):** `/bwmax [Item] 90` sets an own percentage of the normal price for a favorite (items you need yourself), `/bwmax [Item] off` removes it, `/bwmax 90` uses the selected item, `/bwmax` lists all. It replaces the global Max buy % for that item (learning and live limits); the favorites list shows `·90%` behind the name. Reset learned clears all own values. Leave Bait and the market baits counter are unchanged.
 
 ## 0.9.22 · 2026-11-20
 

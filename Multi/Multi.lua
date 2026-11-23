@@ -118,3 +118,83 @@ end
 function BW:OtherWheelActive()
     return not Addon:CanUseMode(self)
 end
+
+-- /bwmax: own max buy percentage for single favorites (e.g. items you need yourself), instead of the
+-- global Max buy %. Stored on the watch entry (entry.percent); a reset of the learned data clears it.
+--   /bwmax [Item] 90     set      /bwmax [Item] off     remove      /bwmax [Item]     show
+--   /bwmax 90            for the item selected in the list          /bwmax            list all
+local function maxSay(text)
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage("|cffffd24dBuyWheel|r " .. text) end
+end
+
+local function maxItemName(id, entry)
+    local info = entry.key and AH.GetItemKeyInfo(entry.key)
+    return info and info.itemName or id
+end
+
+-- The favorite (or saved watch entry) a link or name points to: returns its watch id and entry.
+local function maxFind(text)
+    local itemID = tonumber(text:match("|Hitem:(%d+)"))
+    local name = (text:match("%[(.-)%]") or text):match("^%s*(.-)%s*$"):lower()
+    local function same(key)
+        if itemID then return key.itemID == itemID end
+        local info = AH.GetItemKeyInfo(key)
+        return name ~= "" and info and info.itemName and info.itemName:lower() == name
+    end
+    for _, row in ipairs(BW.favorites or {}) do
+        if row.itemKey and same(row.itemKey) then
+            local id = BW:WatchID(row.itemKey)
+            return id, BW.db.watchItems[id] or { key = row.itemKey, maxPrice = 0, enabled = false }
+        end
+    end
+    for id, entry in pairs(BW.db.watchItems or {}) do
+        if entry.key and same(entry.key) then return id, entry end
+    end
+end
+
+SLASH_BWMAX1 = "/bwmax"
+SlashCmdList = SlashCmdList or {}
+SlashCmdList["BWMAX"] = function(msg)
+    msg = (msg or ""):match("^%s*(.-)%s*$")
+    if msg == "" then
+        local list = {}
+        for id, entry in pairs(BW.db.watchItems or {}) do
+            if entry.percent then list[#list + 1] = ("%s %g%%"):format(maxItemName(id, entry), entry.percent) end
+        end
+        table.sort(list)
+        maxSay(#list > 0 and ("own max buy: " .. table.concat(list, " · "))
+            or ("no own values · global " .. (tonumber(BW.db.learnPercent) or 60) .. "%. Use /bwmax [Item] 90"))
+        return
+    end
+    local itemText, value = msg:match("^(.-)%s*(%S+)$")
+    local wanted
+    if value:lower() == "off" then wanted = false
+    elseif value:match("^%d+%.?%d*$") then wanted = tonumber(value)
+    else itemText, value = msg, nil end
+    local id, entry
+    if itemText == "" then
+        if BW.target then id = BW:WatchID(BW.target.key); entry = BW.db.watchItems[id] end
+        if not entry then maxSay("select an item in the list first, or give an item: /bwmax [Item] 90") return end
+    else
+        id, entry = maxFind(itemText)
+        if not id then maxSay("item not found among your favorites: " .. itemText) return end
+    end
+    if wanted == nil then
+        maxSay(("%s: %s"):format(maxItemName(id, entry), entry.percent and (entry.percent .. "% (own)")
+            or ("global " .. (tonumber(BW.db.learnPercent) or 60) .. "%")))
+        return
+    end
+    if wanted and (wanted < 1 or wanted > 200) then maxSay("percentage 1-200, or off") return end
+    BW.db.watchItems[id] = entry
+    entry.percent = wanted or nil
+    -- Apply it to the current limit at once (the live updates keep it from now on).
+    local learned = BW.db.learnedPrices and BW.db.learnedPrices[id]
+    if learned and learned.normalPrice then
+        local percent = entry.percent or tonumber(BW.db.learnPercent) or 60
+        local limit = math.max(1, math.floor(learned.normalPrice * percent / 100))
+        entry.maxPrice, learned.maxPrice, learned.percent = limit, limit, percent
+    end
+    if BW.panel then BW.panel.displayedTargetID = nil end
+    maxSay(("%s: %s"):format(maxItemName(id, entry), wanted and (wanted .. "% of normal") or
+        ("global " .. (tonumber(BW.db.learnPercent) or 60) .. "%")))
+end

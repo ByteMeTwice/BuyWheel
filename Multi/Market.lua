@@ -1766,7 +1766,9 @@ function BW:ObserveMarketBaits(rows)
             else
                 -- Foreign: the lowest price is at or below the item's max buy price, i.e. a
                 -- lure price that would be bought.
-                held = (entry.maxPrice or 0) > 0 and row.minPrice <= entry.maxPrice
+                local limit = entry.maxPrice or 0
+                if entry.percent then limit = math.floor(limit * (tonumber(self.db.learnPercent) or 60) / entry.percent) end
+                held = limit > 0 and row.minPrice <= limit
             end
             if held then
                 current[id] = true

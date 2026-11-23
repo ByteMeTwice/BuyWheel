@@ -109,7 +109,7 @@ end
 function BW:ApplyLiveLimit(id, learned, normal)
     local watched = self.db.watchItems and self.db.watchItems[id]
     if not watched then return end
-    local percent = tonumber(self.db.learnPercent) or 60
+    local percent = tonumber(watched.percent) or tonumber(self.db.learnPercent) or 60
     local limit = math.max(1, math.floor(normal * percent / 100))
     -- Only with the Night anchor on: while the market is moving (drift, falling prices) or the
     -- value had to be capped by the long-term median, the buy limit may only go down, never up.

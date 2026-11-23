@@ -121,6 +121,8 @@ function BW:ResetLearned()
         local entry = self.db.watchItems and self.db.watchItems[id]
         if entry and learned.maxPrice then entry.maxPrice = 0 end
     end
+    -- Own max buy percentages (/bwmax) do not survive a reset.
+    for _, entry in pairs(self.db.watchItems or {}) do entry.percent = nil end
     self.db.learnedPrices = {}
     self.db.learningDiagnostics = nil
     self.normalPriceSamples, self.freeDepthAt, self.ownActionAt = {}, {}, {}
@@ -250,8 +252,8 @@ function BW:FinishLearning(cancelled)
             local previous = self.db.learnedPrices[id]
             learned.hist = previous and previous.hist
             result.normalPrice = self:ApplyLongTermAnchor(learned, result.normalPrice, minNormal)
-            result.buyLimit = math.max(1, math.floor(result.normalPrice * session.percent / 100))
             local entry = self.db.watchItems[id] or { key = item.key, enabled = false }
+            result.buyLimit = math.max(1, math.floor(result.normalPrice * (tonumber(entry.percent) or session.percent) / 100))
             result.previousLimit = entry.maxPrice
             entry.maxPrice = result.buyLimit
             self.db.watchItems[id] = entry

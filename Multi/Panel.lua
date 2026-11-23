@@ -267,31 +267,19 @@ local function buildPanel(parent)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local info = AH.GetItemKeyInfo(self.key)
             GameTooltip:AddLine(info and info.itemName and itemText(self.key, info) or "Favorite")
-            GameTooltip:AddLine("Click to edit this item's price limit.")
-            GameTooltip:AddLine("Check the box to watch this item.", 1, 1, 1)
+            GameTooltip:AddLine("Click: select · box: watch", 1, 1, 1)
             local stats = BW.purchaseStats
             local counts = stats and stats.items and stats.items[BW:WatchID(self.key)]
-            GameTooltip:AddLine(("Bought/Missed: %d/%d items since Reset"):format(
-                counts and counts.bought or 0, counts and counts.missed or 0), 1, 1, 1)
-            local liveLearned = BW.db.learnedPrices and BW.db.learnedPrices[BW:WatchID(self.key)]
-            GameTooltip:AddLine("Estimated profit since Reset: " .. itemProfitText(counts, liveLearned and liveLearned.normalPrice), 1, 1, 1)
-            local normalInfo = BW:NormalInfo(BW:WatchID(self.key))
-            if normalInfo then GameTooltip:AddLine("Normal price: " .. normalInfo, 1, 1, 1) end
-            GameTooltip:AddLine("Learned value at purchase minus actual cost, including tracked bait corrections. Before fees/deposits; purchases without a normal price are excluded.", 1, 1, 1, true)
-            if counts and (counts.profitUnknownUnits or 0) > 0 then
-                GameTooltip:AddLine(("%d purchased items without a normal price excluded"):format(counts.profitUnknownUnits), 1, 1, 1)
-            end
-            GameTooltip:AddLine("Max buy price: " .. money(entry and entry.maxPrice or 0), 1, 1, 1)
             local learned = BW.db.learnedPrices and BW.db.learnedPrices[BW:WatchID(self.key)]
+            GameTooltip:AddLine(("Bought/Missed %d/%d · profit %s"):format(counts and counts.bought or 0, counts and counts.missed or 0,
+                itemProfitText(counts, learned and learned.normalPrice)), 1, 1, 1)
             if learned then
-                GameTooltip:AddLine("Learned normal price: " .. money(learned.normalPrice), 1, 1, 1)
-                GameTooltip:AddLine(("%d samples%s"):format(learned.samples or 0,
-                    learned.live and " · live 10-minute median" or " · manual learning"), 1, 1, 1)
-                GameTooltip:AddLine(("Buy limit: %.1f%% of normal"):format((entry and entry.maxPrice or 0) * 100 / learned.normalPrice), 1, 1, 1)
+                GameTooltip:AddLine(("Normal %s · limit %.0f%% of it%s"):format(money(learned.normalPrice),
+                    (entry and entry.maxPrice or 0) * 100 / learned.normalPrice,
+                    entry and entry.percent and " (own, /bwmax)" or ""), 1, 1, 1)
             else
-                GameTooltip:AddLine("Normal price appears after learning or 10 valid live samples.", 1, 1, 1, true)
+                GameTooltip:AddLine("No normal price yet: Start Learning Prices.", 1, 1, 1)
             end
-            GameTooltip:AddLine("The list shows normal prices. Live updates use existing watching replies; buy limits are edited separately.", 1, 1, 1, true)
             GameTooltip:Show()
         end)
         row:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -313,8 +301,8 @@ local function buildPanel(parent)
     end)
     resetLearned:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Reset everything learned")
-        GameTooltip:AddLine("Deletes all learned normal prices, depth measurements and the buy limits derived from them, so the next Start Learning Prices is the only data in use. Watch checkboxes stay. Not possible while watching or learning.", 1, 1, 1, true)
+        GameTooltip:AddLine("Reset learned")
+        GameTooltip:AddLine("Deletes all learned normal prices, limits and own /bwmax values.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     resetLearned:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -336,7 +324,7 @@ local function buildPanel(parent)
     reportButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Evaluation page")
-        GameTooltip:AddLine("Shows how to open the evaluation page (tools/BuyWheelLog.html) with your trade log: tables and charts of purchases, sales and profit. Also /bwlog html.", 1, 1, 1, true)
+        GameTooltip:AddLine("How to open the log evaluation (/bwlog html).", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     reportButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -366,7 +354,7 @@ local function buildPanel(parent)
     historyReset:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Reset purchases")
-        GameTooltip:AddLine("Clears purchase history, spending totals, purchase-rate comparisons and Bought/Missed counters for this tab. The current run's budget is unchanged.", 1, 1, 1, true)
+        GameTooltip:AddLine("Clears the history and Bought/Missed counters.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     historyReset:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -474,8 +462,7 @@ local function buildPanel(parent)
     anchor:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Night anchor")
-        GameTooltip:AddLine("Caps every normal price at 125% of the median of its lowest prices over the last 7 days (noted every 30 minutes while watching), so a short price spike cannot raise the buy limit. Needs 6 notes over at least 2 hours.", 1, 1, 1, true)
-        GameTooltip:AddLine("Off: the prices are still noted, but nothing is capped. Can be switched while watching.", 1, 1, 1, true)
+        GameTooltip:AddLine("Caps the normal price at 125% of the 7-day low median. Off: no cap.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     anchor:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -485,10 +472,8 @@ local function buildPanel(parent)
     local function directBuyTooltip(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Direct buy")
-        GameTooltip:AddLine("Buys straight from the multi-item scan, without loading the item's listings first. That saves one auction house message (about half a second) per purchase.", 1, 1, 1, true)
-        GameTooltip:AddLine("The quantity is learned per item: from the units under the limit seen whenever listings are loaded, and from your Direct buys (more after a cheap buy, half after a quote above the limit). Never more than listed or than the budget allows at the limit price. Kept through Reset and learning runs.", 1, 1, 1, true)
-        GameTooltip:AddLine("The auction house fills from the cheapest units and quotes the total; the purchase is confirmed when the average unit price is within the buy limit. Single units may cost more than the limit.", 1, 1, 1, true)
-        GameTooltip:AddLine("Not used when Leave Bait applies to the purchase or while an own listing of the item is up (then the listings are loaded as usual). The purchase statistics show it as its own row.", 1, 0.82, 0, true)
+        GameTooltip:AddLine("Buys from the scan without loading the listings: about 0.5 s faster.", 1, 1, 1, true)
+        GameTooltip:AddLine("Quantity is learned per item. Not used with Leave Bait.", 1, 1, 1, true)
         local lines, total = BW:DirectQtySummary(12)
         if total > 0 then
             GameTooltip:AddLine(" ")
@@ -519,9 +504,8 @@ local function buildPanel(parent)
     leaveFrom:SetText(tostring(BW:LeaveBaitThreshold()))
     leaveFrom:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Leave Bait from N % of the normal price")
-        GameTooltip:AddLine("Leaves one item at the lowest price when that lowest price is at or above this percentage of the item's learned normal price, i.e. when the margin is small. Below it everything is bought. For indivisible stacks, leaves the cheapest auction.", 1, 1, 1, true)
-        GameTooltip:AddLine("0 = always leave a bait, 100 = never. Items without a learned normal price are bought completely. A thin line under the current price (same color as the price) shows when a unit stays behind at that price.", 1, 0.82, 0, true)
+        GameTooltip:AddLine("Leave Bait from N %")
+        GameTooltip:AddLine("Leaves 1 item when the price is at or above N % of normal. 0 = always, 100 = never.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     leaveFrom:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -545,8 +529,7 @@ local function buildPanel(parent)
     autoBait:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Auto-Bait")
-        GameTooltip:AddLine("While watching, posts one bait of a random watched item from your bags at the set price, spread over the hours the material should last. Needs a mouse-wheel step (never a timer) and only happens when nothing is buyable.", 1, 1, 1, true)
-        GameTooltip:AddLine("Only in a quiet market: no item under its limit or clearly below its normal price. After activity it waits a random time so several users do not bait at once. One own bait per item.", 1, 1, 1, true)
+        GameTooltip:AddLine("Posts a bait from your bags while the market is quiet.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     autoBait:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -563,8 +546,8 @@ local function buildPanel(parent)
     label(panel, "hours", "GameFontNormalSmall", x + 230, -108)
     baitLasts:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Bait material lasts (hours)")
-        GameTooltip:AddLine("Auto-Bait spreads the bait material in your bags (watched items with a learned normal price) over this many hours. How many baits per hour that means follows from the stock and the time left, and is corrected as material is used. Baits are only posted while the market is quiet; what could not be posted meanwhile is saved up (about half an hour's worth) and used in the next quiet window. 0 = no limit.", 1, 1, 1, true)
+        GameTooltip:AddLine("Material lasts")
+        GameTooltip:AddLine("Spreads your bait stock over N hours. 0 = no limit.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     baitLasts:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -580,50 +563,11 @@ local function buildPanel(parent)
     local bpmText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bpmText:SetPoint("TOPRIGHT", robBox, "BOTTOMRIGHT", 0, 3)
     bpmText:SetJustifyH("RIGHT")
-    -- Gold by post (PostGold.lua): in the mailbox now and
-    -- on its way from sold auctions, with the time until the next sale arrives.
-    local mailText = robBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    mailText:SetPoint("TOPRIGHT", bpmText, "BOTTOMRIGHT", 0, -1)
-    mailText:SetJustifyH("RIGHT")
-    local function mailSummary()
-        local M = Addon.PostGold
-        if not M then return nil end
-        local ok, s = pcall(M.Summary, M)
-        return ok and type(s) == "table" and s or nil
-    end
-    local function mailGold(copper)
-        return GetCoinTextureString and GetCoinTextureString(math.floor((copper or 0) / 100) * 100) or compactMoney(copper or 0)
-    end
-    local function mailDuration(seconds)
-        seconds = math.max(0, math.floor(seconds or 0))
-        if seconds >= 3600 then return ("%dh %02dm"):format(seconds / 3600, (seconds % 3600) / 60) end
-        return ("%dm"):format(math.ceil(seconds / 60))
-    end
-    local function refreshMail()
-        local s = mailSummary()
-        if not s then mailText:SetText("") return end
-        if (s.mailbox or 0) <= 0 and (s.coming or 0) <= 0 then mailText:SetText("Post –") return end
-        local text = ("Post %s"):format(mailGold(s.mailbox))
-        if (s.coming or 0) > 0 then
-            text = text .. (" · +%s in %s"):format(mailGold(s.coming), mailDuration(s.nextIn))
-        end
-        mailText:SetText(text)
-    end
     robBox:SetScript("OnEnter", function(self)
         local posted, hit, open, units, rate = Addon:RobSummary(BW)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:AddLine("Return on Bait (ROB)")
-        GameTooltip:AddLine("Market baits N = watched items whose lowest price is held by a bait right now (own bait, or a foreign lowest price at or below your max buy price). BPM = how many new baits per minute appeared in the last 10 minutes; Ø = average since Reset. Counted from the watching scans, so only while watching.", 0.4, 0.7, 1, true)
-        local mail = mailSummary()
-        if mail then
-            GameTooltip:AddLine(("Post: %s in the mailbox (as of the last visit) · %s on its way%s"):format(
-                mailGold(mail.mailbox), mailGold(mail.coming), mail.estimated and " (estimate)" or ""), 1, 0.82, 0.2, true)
-            for i = 1, math.min(6, #(mail.lines or {})) do
-                local l = mail.lines[i]
-                GameTooltip:AddLine(("%s: %s in %s"):format((l.item .. ((l.qty and l.qty > 0) and (" x" .. l.qty) or "")), mailGold(l.amount), mailDuration(l.left)), 0.8, 0.8, 0.8)
-            end
-        end
-        GameTooltip:AddLine("Counts the items of the same commodity that you bought at the bait price or below after a bait was posted (others matched or undercut it), against the number of baits. A bait's window ends with the next bait of that item or after 10 minutes.", 1, 1, 1, true)
+        GameTooltip:AddLine("Market baits N · BPM = new baits per minute (last 10 min, Ø since Reset). ROB = items bought at bait price after your baits.", 0.4, 0.7, 1, true)
         if posted > 0 then
             GameTooltip:AddLine(("%d items bought at the bait price or below after %d baits"):format(units, posted), 1, 1, 1)
             GameTooltip:AddLine(("%d baits led to purchases · %d still open"):format(hit, open), 1, 1, 1)
@@ -647,11 +591,11 @@ local function buildPanel(parent)
     baitPercent:SetText(tostring(BW:AutoBaitPercent()))
     baitPercent:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Bait price in % of the Learned normal price")
-        GameTooltip:AddLine("Each auto-bait is posted at this percentage of the item's learned normal price.", 1, 1, 1, true)
+        GameTooltip:AddLine("Bait price")
+        GameTooltip:AddLine("Bait = this % of normal. Keep it at or below Max buy.", 1, 1, 1, true)
         local count, names = BW:BaitAboveLimitCount()
         if count > 0 then
-            GameTooltip:AddLine(("Warning: for %d watched item(s) this is above their current max buy price, so you would not buy your own bait. The limits are per item (older learning or manual values); Start learning or the live limits set them all to Max buy %%."):format(count), 1, 0.35, 0.3, true)
+            GameTooltip:AddLine(("Above max buy for %d item(s)."):format(count), 1, 0.35, 0.3, true)
             for _, name in ipairs(names) do GameTooltip:AddLine("  " .. name, 1, 0.6, 0.55) end
             if count > #names then GameTooltip:AddLine(("  … and %d more"):format(count - #names), 1, 0.6, 0.55) end
         end
@@ -677,9 +621,8 @@ local function buildPanel(parent)
     end)
     learnPercent:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Max buy price in % of the Learned normal price")
-        GameTooltip:AddLine("Start learning sets each item's max buy price to this percentage of its learned normal price (median of the lowest listing prices). While watching, the same percentage is applied on every live update.", 1, 1, 1, true)
-        GameTooltip:AddLine("A bait posted above this percentage (see Auto-Bait) would be above your own buy limit and never be bought by you.", 1, 0.82, 0, true)
+        GameTooltip:AddLine("Max buy %")
+        GameTooltip:AddLine("Max buy price = this % of normal (1-100). Used when learning and live.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     learnPercent:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -698,9 +641,8 @@ local function buildPanel(parent)
     learn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -2)
     learn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Learn normal prices for all favorites")
-        GameTooltip:AddLine("Measures the market depth of every favorite (several detail queries each) and samples the lowest prices in between. No purchases.", 1, 1, 1, true)
-        GameTooltip:AddLine("Ends by itself when the progress reaches 100%, then applies the buy percentage to each normal price. STOP is locked while it runs; closing this tab cancels without applying limits.", 1, 1, 1, true)
+        GameTooltip:AddLine("Start Learning Prices")
+        GameTooltip:AddLine("Measures the normal prices of all favorites. No purchases.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     learn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -717,8 +659,7 @@ local function buildPanel(parent)
     chatReport:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Chat report")
-        GameTooltip:AddLine("On: every purchase of this addon is reported in chat in one line instead of the game's \"You won an auction\" message: quantity, cost, normal price, % of normal and profit. Green = bought, red = missed, blue = own bait.", 1, 1, 1, true)
-        GameTooltip:AddLine("Off: the game's messages stay as they are. Purchases you make by hand always keep the game's message.", 1, 1, 1, true)
+        GameTooltip:AddLine("Short colored lines for buys, baits and sales instead of the game's.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     chatReport:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -740,11 +681,21 @@ local function buildPanel(parent)
     baitNow:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Bait now")
-        GameTooltip:AddLine("Posts one bait of a random watched item from your bags at the Bait price % of its learned normal price. Works with or without watching, ignores the quiet-market rule, skips items with an own bait up (while watching).", 1, 1, 1, true)
-        GameTooltip:AddLine("If the AH is busy, the first click reserves the slot and the next click posts.", 1, 1, 1, true)
+        GameTooltip:AddLine("Posts one bait now at the Bait price %.", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     baitNow:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Short tips for the controls that have no tooltip of their own.
+    Addon:Tip(previous, "Previous page")
+    Addon:Tip(nextPage, "Next page")
+    Addon:Tip(more, "Load more", "Loads more favorites from the auction house.")
+    Addon:Tip(historyToggle, "Favorites / Purchases", "Switches between the favorites and the purchase history.")
+    Addon:Tip(historyPrev, "Previous page")
+    Addon:Tip(historyNext, "Next page")
+    Addon:Tip(go, "Start watching", "Watches the checked favorites and buys under their limits.")
+    Addon:Tip(stop, "STOP", "Stops watching.")
+    for _, box in ipairs(maxPriceBoxes) do Addon:Tip(box, "Max buy · selected item", "Gold / silver / copper limit per unit.") end
+    for _, box in ipairs(budgetBoxes) do Addon:Tip(box, "Shared budget", "Total gold for all purchases of a run.") end
 
     function panel:RefreshBuyWheelM()
         if parent:GetAlpha() == 0 and (BW.running or BW.learning or BW.benchmark or BW.finding or BW.priceLookup) then BW:Stop() end
@@ -818,6 +769,8 @@ local function buildPanel(parent)
                     and (key.battlePetSpeciesID or 0) == (targetKey.battlePetSpeciesID or 0))
                 local text = info and info.itemName and (info.isCommodity and info.itemName or itemText(key, info))
                     or ("Item %d · loading …"):format(key.itemID)
+                -- Own max buy percentage (/bwmax) next to the name.
+                if entry and entry.percent then text = text .. (" |cffffd24d·%g%%|r"):format(entry.percent) end
                 local _, normalState = BW:NormalInfo(id)
                 if entry and entry.enabled and (entry.maxPrice or 0) <= 0 then
                     row.normalPrice:SetTextColor(1, 0.45, 0.3)
@@ -906,7 +859,6 @@ local function buildPanel(parent)
             local held, bpm, _, averageBpm = Addon:MarketBaitStats(BW)
             bpmText:SetText(held and ("Market baits %d · BPM %.1f%s"):format(held, bpm,
                 averageBpm and (" (Ø %.1f)"):format(averageBpm) or "") or "Market baits –")
-            refreshMail()
         end
         if not baitLasts:HasFocus() then baitLasts:SetText(tostring(BW:BaitLastsHours())) end
         if not baitPercent:HasFocus() then baitPercent:SetText(tostring(BW:AutoBaitPercent())) end

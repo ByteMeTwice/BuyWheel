@@ -168,3 +168,16 @@ function Addon:RegisterModeTabs()
         end
     end)
 end
+
+-- Short hover tip for a control: a title and one line (range, or what it changes). Hooks the
+-- scripts, so it can be added to any frame that has no tooltip of its own.
+function Addon:Tip(frame, title, text, anchor)
+    if not frame or not frame.HookScript then return end
+    frame:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, anchor or "ANCHOR_TOP")
+        GameTooltip:AddLine(title)
+        if text then GameTooltip:AddLine(text, 1, 1, 1, true) end
+        GameTooltip:Show()
+    end)
+    frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
