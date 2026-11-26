@@ -750,7 +750,7 @@ function BW:RequestLearningDepth(session)
         local info = AH.GetItemKeyInfo(key)
         local item = session.items[BW:WatchID(key)]
         -- Items that already have all their probes are skipped.
-        if info and info.isCommodity and not (item and (item.probes or 0) >= 6) then
+        if info and info.isCommodity and not (item and (item.probes or 0) >= BW.learningProbeTarget) then
             queuedSearch = { kind = "depthLearn", key = key, session = session }
             self:Pump()
             return true

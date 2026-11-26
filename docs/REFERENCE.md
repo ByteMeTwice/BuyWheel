@@ -526,7 +526,7 @@ Depth samples come from:
 
 - **Start learning:** between two minimum-price samples the run sends a burst
   of depth probes (detail queries, up to eight, sent as soon as the AH is
-  ready). Every commodity needs six probes and ten minimum-price samples; the
+  ready). Every commodity needs four probes and ten minimum-price samples; the
   progress shows how much of that is done. The median depth price becomes the
   normal price (at least three probes), otherwise the median minimum price stays.
   Runs take a few minutes, depending on the number of favorites and the AH

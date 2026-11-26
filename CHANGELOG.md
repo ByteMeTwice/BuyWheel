@@ -2,6 +2,10 @@
 
 Newest first. Every update is pushed to GitHub with an entry here.
 
+## 0.9.24 · 2026-11-26
+
+- **Faster learning run:** every commodity now needs 4 depth probes instead of 6 (about a third shorter). The normal price is still the lower quartile of the probes (at least 3 needed), and live watching keeps refining it.
+
 ## 0.9.23 · 2026-11-21
 
 - **Gold by post (PostGold.lua, built in, no other addon needed):** tracks this character's mail gold from sale notices, the SOLD rows of your auctions and the mailbox (letters and "Sale Pending" invoices). A small always-visible frame on the screen (drag it with the left mouse button, `/bwpost` hides or shows it, `/bwpost reset` puts it back) shows `Mailbox: gold` and `On its way: gold · next in 23m`; its tooltip lists the next sales.

@@ -28,7 +28,8 @@ end
 local learningDepthBurst, learningDepthGap = 8, 0
 -- A run ends by itself once every item has this many depth probes (and enough
 -- minimum-price samples). The time limit only guards against a stuck run.
-local learningProbeTarget, learningMaxSeconds = 6, 30 * 60
+local learningProbeTarget, learningMaxSeconds = 4, 30 * 60
+BW.learningProbeTarget = learningProbeTarget
 
 -- Consume complete batch replies already obtained by normal watching. These
 -- observations never send queries. They update the normal price and the item's
